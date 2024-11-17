@@ -1,0 +1,16 @@
+Package: BigNum
+Title: A S7 Showcase
+Version: 0.0.0.9000
+Authors@R: 
+    person("Visruth", "Srimath Kandali", , "visruth@gmail.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0009-0005-9097-0688"))
+Description: A toy package designed to showcase and serve as a
+    reference/tutorial for S7 development. To be used in conjunction with
+    the S7 package website.
+License: GPL (>= 3)
+Imports: 
+    rlang (>= 1.1.4),
+    S7 (>= 0.2.0)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
