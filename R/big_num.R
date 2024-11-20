@@ -1,10 +1,12 @@
-node_or_na <- function(value) is.na(value) || S7_inherits(value, node) # predicate to check if `nd` is a node or NA
+# Start by looking at the `big_num` class
+
+node_or_na <- function(value) is.na(value) || S7_inherits(value, node) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
 
 node <- new_class("node",
   package = "BigNum",
   properties = list(
     VALUE = new_property(
-      class_numeric, # TODO: make this a generic? Swap to integers here?
+      class_numeric, # TODO: make this a generic?
       getter = function(self) self@VALUE
     ),
     e = new_property(class_environment, getter = function(self) self@e),
@@ -20,21 +22,18 @@ node <- new_class("node",
       }
     )
   ),
-  # TODO: fix this validator too
   validator = function(self) {
     if (!node_or_na(self@nxt)) {
       "@nxt must be a `node` object or `NA`."
-    }
-    if (!is.numeric(self@VALUE) || length(self@VALUE) != 1) {
+    } else if (!is.numeric(self@VALUE) || length(self@VALUE) != 1) {
       "@VALUE must be a `numeric` vector of length 1."
     }
   },
   constructor = function(VALUE, nxt = NA) {
     force(VALUE)
-    # if (VALUE != floor(VALUE)) warning("Coercing value to integer")
-    VALUE <- as.integer(VALUE)
     force(nxt)
-    new_object(S7_object(), VALUE = VALUE, e = rlang::env(nxt = nxt))
+
+    new_object(S7_object(), VALUE = VALUE, e = rlang::new_environment(list(nxt = nxt)))
   }
 )
 
@@ -46,33 +45,47 @@ linked_list <- new_class("linked_list",
       getter = function(self) self@e$head,
       setter = function(self, value) {
         # TODO: kick up to error?
-        warning("@head should not be set manually", call. = FALSE)
+        warning("@head should not be set manually. Maybe you meant to use `append_to_start()`?", call. = FALSE)
 
-        self@e$head <- value
+        my_env <- self@e
+        my_env$head <- value
+
         self
-      }
+      },
+      validator = node_or_na
     ),
     tail = new_property(node,
       getter = function(self) self@e$tail,
       setter = function(self, value) {
         warning("@tail should not be set manually", call. = FALSE)
 
-        self@e$tail <- value
+        my_env <- self@e
+        my_env$tail <- value
+
         self
       }
     ),
-    length = new_property(class_numeric, getter = function(self) self@e$length, setter = function(self, value) self@e$length <- value),
-    e = new_property(class_environment)
-  ), validator = function(self) {
-    # TODO: validation might be broken?
+    length = new_property(class_integer, getter = function(self) self@e$length, setter = function(self, value) {
+      warning("@length should not be set manually", call. = FALSE)
+      environ <- self@e
+      environ$length <- as.integer(value)
+
+      self
+    }),
+    e = new_property(class_environment, getter = function(self) self@e)
+  ),
+  validator = function(self) {
     if (!node_or_na(self@head)) {
       "@head must be a `node` object or `NA`."
     } else if (!node_or_na(self@tail)) {
       "@tail must be a `node` object or `NA`."
     }
-  }, constructor = function(num = NULL) {
+  },
+  constructor = function(num = NULL) {
+    force(num)
+
     if (is.null(num) || num == "") {
-      return(new_object(S7_object(), e = rlang::env(head = NA, tail = NA, length = 0)))
+      return(new_object(S7_object(), e = rlang::new_environment(list(head = NA, tail = NA, length = 0))))
     }
 
     extract_digit_to_node <- function(len) node(as.integer(substring(num, len, len))) # TODO: throw error if the char isn't numeric
@@ -86,27 +99,50 @@ linked_list <- new_class("linked_list",
       }
     }
 
-    e <- rlang::env(head = nodes[[1]], tail = nodes[[len]], length = len)
+    e <- rlang::new_environment(list(
+      head = nodes[[1]],
+      tail = nodes[[len]],
+      length = len
+    ))
 
-    S7::new_object(S7::S7_object(), e = e)
+    new_object(S7_object(), e = e)
   }
 )
 
-#' Makes a BigNum
+#' Infinite precision natural number using a singly linked list
 #'
-#' @param num A character vector representing a number.
+#' @description
+#' BigNum exposes three S7 objects, which are all closely related,
+#' i.e. they are all tightly coupled--which isn't great OOP design
+#' but will suffice.
 #'
-#' @return A big_num S7 object.
+#' The `big_num` class is essentially a wrapper around [linked_list]
+#' with a custom print method as well as some defined operators such as
+#' `+`, `*`, and `^` with an integer.
+#'
 #' @export
-#'
-#' @examples
-big_num <- new_class("big_num",
-  package = "BigNum",
+#' @param num A string representation of a num.
+big_num <- new_class("big_num", # this defines the class, and should match the name of the object on the left-hand-side of the assignment.
+  package = "BigNum", # this defines a package for this `big_num` object so that it doesn't conflict with other potential `big_num` objects from other packages.
+  # properties defines a list of variables that `big_num`s have. Here we have just one property, a `linked_list`
   properties = list(
-    ll = new_property(linked_list, getter = function(self) self@ll)
+    ll = new_property(linked_list, getter = function(self) self@ll) # this property has a custom getter, but no setter. This means that you can get a `big_num`'s `ll` but you cannot set it--i.e. this is a read-only property.
   ),
+  # the class validator is a function that takes a purported `big_num` object (viz. `self`), and runs some checks to ensure that it actually is a `big_num`.
+  validator = function(self) {
+    # as expected, this predicate just checks if `self`'s `ll` is an actual `linked_list`
+    if (!S7_inherits(self@ll, linked_list)) {
+      "@ll must be a valid linked list."
+    }
+    # all validators should return a string if there is an error, or NULL if all's good. Let R return NULL for you automatically.
+  },
+  # S7 objects can have custom constructors which allow you to do some logic with inputs before ending with a call to `new_object()`
+  # this constructor finesses the input to allow for construction of `big_num`s with a numeric `num` as well as the expected character input
+  # note as well that the constructor is a function, and so it takes certain arguments which can have default values. Here, all `big_nums` start
+  # out empty. However, looking at the `node` class one can note that `val` has no default and so must be provided when creating a `node` object.
   constructor = function(num = "") {
-    S7::new_object(S7::S7_object(), ll = linked_list(format(num, trim = TRUE, scientific = FALSE)))
+    force(num)
+    new_object(S7_object(), ll = linked_list(format(num, trim = TRUE, scientific = FALSE)))
   }
 )
 
@@ -118,7 +154,7 @@ method(is_even, big_num) <- function(x) x@ll@head@VALUE %% 2 == 0
 
 append <- new_generic("append", c("x", "ll"))
 method(append, list(node, linked_list)) <- function(x, ll) {
-  suppressWarnings(
+  suppressWarnings({
     if (is.na(ll@head)) {
       ll@head <- x
       ll@tail <- x
@@ -126,13 +162,8 @@ method(append, list(node, linked_list)) <- function(x, ll) {
       ll@tail@nxt <- x
       ll@tail <- x
     }
-  )
-
-  # TODO: what does this error mean and why does this still work if ignored
-  # the attributes do exist in the environment so I'm not using rlang::env properly
-  # Error in `@<-.S7_object`:
-  #   \! Tried to remove non-existent element from pairlist
-  try(ll@length <- ll@length + 1, silent = TRUE)
+    ll@length <- ll@length + 1
+  })
 
   invisible(ll)
 }
@@ -146,7 +177,7 @@ method(append, list(class_numeric | node, big_num)) <- function(x, ll) {
 
 append_to_start <- new_generic("append_to_start", c("x", "ll"))
 method(append_to_start, list(node, linked_list)) <- function(x, ll) {
-  suppressWarnings(
+  suppressWarnings({
     if (is.na(ll@head)) {
       ll@head <- x
       ll@tail <- x
@@ -154,9 +185,8 @@ method(append_to_start, list(node, linked_list)) <- function(x, ll) {
       x@nxt <- ll@head
       ll@head <- x
     }
-  )
-
-  try(ll@length <- ll@length + 1, silent = TRUE)
+    ll@length <- ll@length + 1
+  })
 
   invisible(ll)
 }
@@ -187,7 +217,6 @@ method(print, big_num) <- function(x) {
     return(invisible(x))
   }
 
-  # TODO: remove leading 0s?
   stack <- character(len)
   current <- x@ll@head
 
@@ -197,7 +226,7 @@ method(print, big_num) <- function(x) {
   }
 
   string <- paste0(stack, collapse = "")
-  cat(string)
+  cat(string, "\n")
 
   invisible(x)
 }
@@ -243,6 +272,48 @@ method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) + e2
 }
 
+
+# function to remove tail zeros from a `big_num`
+remove_leading_zeros <- function(bn) {
+  ll <- bn@ll
+  # TODO: length is 1 less than it should be still
+  if (ll@length <= 1) {
+    return(bn)
+  }
+
+  current <- ll@head
+  last_nonzero <- NA
+  final_length <- 0
+
+  while (!is.na(current)) {
+    if (current@VALUE != 0) {
+      last_nonzero <- current
+      final_length <- ll@length
+    } else {
+      final_length <- final_length - 1
+    }
+    current <- current@nxt
+  }
+
+  if (is.na(last_nonzero)) {
+    suppressWarnings({
+      ll@head@nxt <- NA
+      ll@tail <- ll@head
+      ll@length <- 1
+    })
+
+    return(invisible(bn))
+  }
+
+  last_nonzero@nxt <- NA
+  suppressWarnings({
+    ll@tail <- last_nonzero
+    ll@length <- final_length
+  })
+
+  invisible(bn)
+}
+
 `*` <- new_external_generic("base", "*", c("e1", "e2"))
 method(`*`, list(big_num, big_num)) <- function(e1, e2) {
   product <- big_num(0)
@@ -262,7 +333,7 @@ method(`*`, list(big_num, big_num)) <- function(e1, e2) {
     shift2 <- shift2 + 1
   }
 
-  product
+  remove_leading_zeros(product)
 }
 method(`*`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 * big_num(e2)
@@ -289,13 +360,13 @@ method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
 }
 
 `==` <- new_external_generic("base", "==", c("e1", "e2"))
-method(`==`, list(big_num, big_num)) <- function(e1, e2) {
-  len <- e1@ll@length
-  if (len != e2@ll@length) {
+method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
+  len <- e1@length
+  if (len != e2@length) {
     return(FALSE)
   }
-  node1 <- e1@ll@head
-  node2 <- e2@ll@head
+  node1 <- e1@head
+  node2 <- e2@head
   for (i in len:1) {
     if (node1@VALUE != node2@VALUE) {
       return(FALSE)
@@ -305,10 +376,12 @@ method(`==`, list(big_num, big_num)) <- function(e1, e2) {
   }
   TRUE
 }
+method(`==`, list(big_num, big_num)) <- function(e1, e2) {
+  e1@ll == e2@ll
+}
 method(`==`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 == big_num(e2)
 }
 method(`==`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) == e2
 }
-

@@ -4,7 +4,7 @@
 \name{BigNum-package}
 \alias{BigNum}
 \alias{BigNum-package}
-\title{BigNum: A S7 Showcase}
+\title{BigNum: An S7 Showcase}
 \description{
 A toy package designed to showcase and serve as a reference/tutorial for S7 development. To be used in conjunction with the S7 package website.
 }
