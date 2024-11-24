@@ -1,5 +1,3 @@
-# Start by looking at the `big_num` class
-
 node_or_na <- function(value) is.na(value) || S7_inherits(value, node) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
 
 node <- new_class("node",
@@ -7,15 +5,20 @@ node <- new_class("node",
   properties = list(
     VALUE = new_property(
       class_numeric, # TODO: make this a generic?
-      getter = function(self) self@VALUE
+      getter = function(self) self@VALUE,
+      setter = NULL
     ),
-    e = new_property(class_environment, getter = function(self) self@e),
+    state = new_property(
+      class_environment,
+      getter = function(self) self@state,
+      setter = NULL
+    ),
     nxt = new_property(class_any,
       getter = function(self) {
-        self@e$nxt
+        self@state$nxt
       },
       setter = function(self, value) {
-        my_env <- self@e
+        my_env <- self@state
         my_env$nxt <- value
 
         self
@@ -33,7 +36,7 @@ node <- new_class("node",
     force(VALUE)
     force(nxt)
 
-    new_object(S7_object(), VALUE = VALUE, e = rlang::new_environment(list(nxt = nxt)))
+    new_object(S7_object(), VALUE = VALUE, state = rlang::new_environment(list(nxt = nxt)))
   }
 )
 
@@ -42,12 +45,12 @@ linked_list <- new_class("linked_list",
   properties = list(
     head = new_property(
       node,
-      getter = function(self) self@e$head,
+      getter = function(self) self@state$head,
       setter = function(self, value) {
         # TODO: kick up to error?
         warning("@head should not be set manually. Maybe you meant to use `append_to_start()`?", call. = FALSE)
 
-        my_env <- self@e
+        my_env <- self@state
         my_env$head <- value
 
         self
@@ -55,24 +58,24 @@ linked_list <- new_class("linked_list",
       validator = node_or_na
     ),
     tail = new_property(node,
-      getter = function(self) self@e$tail,
+      getter = function(self) self@state$tail,
       setter = function(self, value) {
         warning("@tail should not be set manually", call. = FALSE)
 
-        my_env <- self@e
+        my_env <- self@state
         my_env$tail <- value
 
         self
       }
     ),
-    length = new_property(class_integer, getter = function(self) self@e$length, setter = function(self, value) {
+    length = new_property(class_integer, getter = function(self) self@state$length, setter = function(self, value) {
       warning("@length should not be set manually", call. = FALSE)
-      environ <- self@e
+      environ <- self@state
       environ$length <- as.integer(value)
 
       self
     }),
-    e = new_property(class_environment, getter = function(self) self@e)
+    state = new_property(class_environment, getter = function(self) self@state)
   ),
   validator = function(self) {
     if (!node_or_na(self@head)) {
@@ -85,10 +88,10 @@ linked_list <- new_class("linked_list",
     force(num)
 
     if (is.null(num) || num == "") {
-      return(new_object(S7_object(), e = rlang::new_environment(list(head = NA, tail = NA, length = 0))))
+      return(new_object(S7_object(), state = rlang::new_environment(list(head = NA, tail = NA, length = 0))))
     }
 
-    extract_digit_to_node <- function(len) node(as.integer(substring(num, len, len))) # TODO: throw error if the char isn't numeric
+    extract_digit_to_node <- function(pos) node(as.integer(substring(num, pos, pos))) # TODO: throw error if the char isn't numeric
 
     len <- nchar(num)
     nodes <- lapply(len:1, function(i) extract_digit_to_node(i))
@@ -99,13 +102,13 @@ linked_list <- new_class("linked_list",
       }
     }
 
-    e <- rlang::new_environment(list(
+    state <- rlang::new_environment(list(
       head = nodes[[1]],
       tail = nodes[[len]],
       length = len
     ))
 
-    new_object(S7_object(), e = e)
+    new_object(S7_object(), state = state)
   }
 )
 
@@ -122,29 +125,38 @@ linked_list <- new_class("linked_list",
 #'
 #' @export
 #' @param num A string representation of a num.
-big_num <- new_class("big_num", # this defines the class, and should match the name of the object on the left-hand-side of the assignment.
-  package = "BigNum", # this defines a package for this `big_num` object so that it doesn't conflict with other potential `big_num` objects from other packages.
-  # properties defines a list of variables that `big_num`s have. Here we have just one property, a `linked_list`
+big_num <- new_class("big_num",
+  package = "BigNum",
   properties = list(
-    ll = new_property(linked_list, getter = function(self) self@ll) # this property has a custom getter, but no setter. This means that you can get a `big_num`'s `ll` but you cannot set it--i.e. this is a read-only property.
+    ll = new_property(
+      linked_list,
+      getter = function(self) self@ll,
+      setter = NULL
+    )
   ),
-  # the class validator is a function that takes a purported `big_num` object (viz. `self`), and runs some checks to ensure that it actually is a `big_num`.
   validator = function(self) {
-    # as expected, this predicate just checks if `self`'s `ll` is an actual `linked_list`
     if (!S7_inherits(self@ll, linked_list)) {
       "@ll must be a valid linked list."
     }
-    # all validators should return a string if there is an error, or NULL if all's good. Let R return NULL for you automatically.
   },
-  # S7 objects can have custom constructors which allow you to do some logic with inputs before ending with a call to `new_object()`
-  # this constructor finesses the input to allow for construction of `big_num`s with a numeric `num` as well as the expected character input
-  # note as well that the constructor is a function, and so it takes certain arguments which can have default values. Here, all `big_nums` start
-  # out empty. However, looking at the `node` class one can note that `val` has no default and so must be provided when creating a `node` object.
   constructor = function(num = "") {
     force(num)
-    new_object(S7_object(), ll = linked_list(format(num, trim = TRUE, scientific = FALSE)))
+
+    if (!is.character(num)) warning("Coercing `num` to string using `format()`")
+
+    num <- format(num, trim = TRUE, scientific = FALSE) # TODO: test this
+    new_object(S7_object(), ll = linked_list(num))
   }
 )
+
+# TODO: Rewrite to inherit from linked_list--adjust methods accordingly
+# big_num <- new_class("big_num",
+#   parent = linked_list,
+#   package = "BigNum",
+#   constructor = function(num = "") {
+#     new_object(linked_list(), num = num)
+#   }
+# )
 
 is.na <- new_external_generic("base", "is.na", "x")
 method(is.na, node) <- function(x) !S7_inherits(x, node)
@@ -152,8 +164,9 @@ method(is.na, node) <- function(x) !S7_inherits(x, node)
 is_even <- new_generic("is_even", c("x"))
 method(is_even, big_num) <- function(x) x@ll@head@VALUE %% 2 == 0
 
-append <- new_generic("append", c("x", "ll"))
-method(append, list(node, linked_list)) <- function(x, ll) {
+# TODO: rewrite to be external generic?
+bn_append <- new_generic("bn_append", c("x", "ll"))
+method(bn_append, list(node, linked_list)) <- function(x, ll) {
   suppressWarnings({
     if (is.na(ll@head)) {
       ll@head <- x
@@ -167,12 +180,12 @@ method(append, list(node, linked_list)) <- function(x, ll) {
 
   invisible(ll)
 }
-method(append, list(class_numeric, linked_list)) <- function(x, ll) {
+method(bn_append, list(class_numeric, linked_list)) <- function(x, ll) {
   stopifnot(x < 10 && x >= 0)
-  append(node(x), ll)
+  bn_append(node(x), ll)
 }
-method(append, list(class_numeric | node, big_num)) <- function(x, ll) {
-  append(x, ll@ll)
+method(bn_append, list(class_numeric | node, big_num)) <- function(x, ll) {
+  bn_append(x, ll@ll)
 }
 
 append_to_start <- new_generic("append_to_start", c("x", "ll"))
@@ -231,12 +244,34 @@ method(print, big_num) <- function(x) {
   invisible(x)
 }
 
+# method(print, big_num) <- function(x) {
+#   len <- x@length
+
+#   if (len == 0) {
+#     cat("NA\n")
+#     return(invisible(x))
+#   }
+
+#   stack <- character(len)
+#   current <- x@head
+
+#   for (i in len:1) {
+#     stack[i] <- current@VALUE
+#     current <- current@nxt
+#   }
+
+#   string <- paste0(stack, collapse = "")
+#   cat(string, "\n")
+
+#   invisible(x)
+# }
+
 `+` <- new_external_generic("base", "+", c("e1", "e2"))
 add_helper <- function(node1, node2, carry, sum) {
   digit <- node1@VALUE + node2@VALUE + carry
   carry <- digit %/% 10
   digit <- digit %% 10
-  append(digit, sum)
+  bn_append(digit, sum)
 
   carry
 }
@@ -260,7 +295,7 @@ method(`+`, list(big_num, big_num)) <- function(e1, e2) {
     node2 <- node2@nxt
   }
   if (carry > 0) {
-    append(carry, sum)
+    bn_append(carry, sum)
   }
 
   sum
