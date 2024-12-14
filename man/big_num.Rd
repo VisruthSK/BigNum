@@ -10,9 +10,7 @@ big_num(num = "")
 \item{num}{A string representation of a num.}
 }
 \description{
-BigNum exposes three S7 objects, which are all closely related,
-i.e. they are all tightly coupled--which isn't great OOP design
-but will suffice.
+TODO: WRITE THIS
 
 The \code{big_num} class is essentially a wrapper around \link{linked_list}
 with a custom print method as well as some defined operators such as

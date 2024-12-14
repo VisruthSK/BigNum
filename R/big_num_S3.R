@@ -1,5 +1,6 @@
-node_or_na_s3 <- function(value) is.na(value) || inherits(value, "big_num_node_s3")
+node_or_na_s3 <- function(value) inherits(value, "big_num_node_s3") || all(is.na(value))
 
+#' @export
 node_s3 <- function(VALUE, nxt = NA) {
   stopifnot(node_or_na_s3(nxt), is.numeric(VALUE), length(VALUE) == 1)
 
@@ -12,6 +13,7 @@ node_s3 <- function(VALUE, nxt = NA) {
   )
 }
 
+#' @export
 linked_list_s3 <- function(num = NULL) {
   force(num)
 
@@ -44,36 +46,72 @@ linked_list_s3 <- function(num = NULL) {
   )
 }
 
+#' @export
 big_num_s3 <- function(num = "") {
-  structure(linked_list_s3(num), class = "big_num_s3")
+  structure(linked_list_s3(num), class = c("big_num_s3", "big_num_linked_list_s3"))
 }
 
-is.na.node_s3 <- function(x) {
-  !inherits(x, "big_num_node_s3")
-}
+# is.na.node_s3 <- function(x) {
+#   \!inherits(x, "big_num_node_s3")
+# }
 
+#' @export
 is_even_s3 <- function(x) {
   UseMethod("is_even_s3")
 }
-
-is_even_s3.big_num <- function(x) {
-  x$ll$state$head$VALUE %% 2 == 0
+#' @export
+is_even_s3.big_num_s3 <- function(x) {
+  x$state$head$VALUE %% 2 == 0
 }
 
+#' @export
 bn_append_s3 <- function(x, ll) {
   UseMethod("bn_append_s3")
 }
 
 # TODO: fix this later
-bn_append_s3.linked_list <- function(x, ll) {
-  if (is.na(ll$state$head)) {
+#' @export
+bn_append_s3.big_num_node_s3 <- function(x, ll) {
+  if (!inherits(ll$state$head, "big_num_node_s3")) {
     ll$state$head <- x
     ll$state$tail <- x
   } else {
-    ll$state$tail@nxt <- x
+    ll$state$tail$state$nxt <- x
     ll$state$tail <- x
   }
-  ll@length <- ll@length + 1
+  ll$state$length <- ll$state$length + 1
 
   invisible(ll)
+}
+
+#' @exportS3Method base::print
+print.big_num_linked_list_s3 <- function(x, ...) {
+  current <- x$state$head
+  while (inherits(current, "big_num_node_s3")) {
+    cat(current$VALUE, "-> ")
+    current <- current$state$nxt
+  }
+  cat("NA\n")
+  
+  invisible(x)
+}
+
+#' @exportS3Method base::print
+print.big_num_s3 <- function(x, ...) {
+  len <- x$state$length
+
+  if (len == 0) {
+    return(cat("NA\n"))
+  }
+
+  stack <- character(len)
+  current <- x$state$head
+
+  for (i in len:1) {
+    stack[i] <- current$VALUE
+    current <- current$state$nxt
+  }
+
+  string <- paste0(stack, collapse = "")
+  cat(string, "\n")
 }

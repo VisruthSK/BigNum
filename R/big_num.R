@@ -1,4 +1,5 @@
-node_or_na <- function(value) is.na(value) || S7_inherits(value, node) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
+# TODO: pull out latter part of statement and rewrite as `is_node(x)`
+node_or_na <- function(value) S7_inherits(value, node) || is.na(value) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
 
 node <- new_class("node",
   package = "BigNum",
@@ -115,9 +116,7 @@ linked_list <- new_class("linked_list",
 #' Infinite precision natural number using a singly linked list
 #'
 #' @description
-#' BigNum exposes three S7 objects, which are all closely related,
-#' i.e. they are all tightly coupled--which isn't great OOP design
-#' but will suffice.
+#' TODO: WRITE THIS
 #'
 #' The `big_num` class is essentially a wrapper around [linked_list]
 #' with a custom print method as well as some defined operators such as
@@ -126,49 +125,24 @@ linked_list <- new_class("linked_list",
 #' @export
 #' @param num A string representation of a num.
 big_num <- new_class("big_num",
+  parent = linked_list,
   package = "BigNum",
-  properties = list(
-    ll = new_property(
-      linked_list,
-      getter = function(self) self@ll,
-      setter = NULL
-    )
-  ),
-  validator = function(self) {
-    if (!S7_inherits(self@ll, linked_list)) {
-      "@ll must be a valid linked list."
-    }
-  },
   constructor = function(num = "") {
-    force(num)
-
-    if (!is.character(num)) warning("Coercing `num` to string using `format()`")
-
-    num <- format(num, trim = TRUE, scientific = FALSE) # TODO: test this
-    new_object(S7_object(), ll = linked_list(num))
+    new_object(linked_list(num))
   }
 )
 
-# TODO: Rewrite to inherit from linked_list--adjust methods accordingly
-# big_num <- new_class("big_num",
-#   parent = linked_list,
-#   package = "BigNum",
-#   constructor = function(num = "") {
-#     new_object(linked_list(), num = num)
-#   }
-# )
-
-is.na <- new_external_generic("base", "is.na", "x")
-method(is.na, node) <- function(x) !S7_inherits(x, node)
+# is.na <- new_external_generic("base", "is.na", "x")
+# method(is.na, node) <- function(x) !S7_inherits(x, node)
 
 is_even <- new_generic("is_even", c("x"))
-method(is_even, big_num) <- function(x) x@ll@head@VALUE %% 2 == 0
+method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
 
 # TODO: rewrite to be external generic?
 bn_append <- new_generic("bn_append", c("x", "ll"))
 method(bn_append, list(node, linked_list)) <- function(x, ll) {
   suppressWarnings({
-    if (is.na(ll@head)) {
+    if (!S7_inherits(ll@head)) {
       ll@head <- x
       ll@tail <- x
     } else {
@@ -184,14 +158,11 @@ method(bn_append, list(class_numeric, linked_list)) <- function(x, ll) {
   stopifnot(x < 10 && x >= 0)
   bn_append(node(x), ll)
 }
-method(bn_append, list(class_numeric | node, big_num)) <- function(x, ll) {
-  bn_append(x, ll@ll)
-}
 
 append_to_start <- new_generic("append_to_start", c("x", "ll"))
 method(append_to_start, list(node, linked_list)) <- function(x, ll) {
   suppressWarnings({
-    if (is.na(ll@head)) {
+    if (!S7_inherits(ll@head)) {
       ll@head <- x
       ll@tail <- x
     } else {
@@ -207,14 +178,11 @@ method(append_to_start, list(class_numeric, linked_list)) <- function(x, ll) {
   stopifnot(x < 10 && x >= 0)
   append_to_start(node(x), ll)
 }
-method(append_to_start, list(class_numeric | node, big_num)) <- function(x, ll) {
-  append_to_start(x, ll@ll)
-}
 
 print <- new_external_generic("base", "print", "x")
 method(print, linked_list) <- function(x) {
   current <- x@head
-  while (!is.na(current)) {
+  while (S7_inherits(current)) {
     cat(current@VALUE, "-> ")
     current <- current@nxt
   }
@@ -223,7 +191,7 @@ method(print, linked_list) <- function(x) {
   invisible(x)
 }
 method(print, big_num) <- function(x) {
-  len <- x@ll@length
+  len <- x@length
 
   if (len == 0) {
     cat("NA\n")
@@ -231,7 +199,7 @@ method(print, big_num) <- function(x) {
   }
 
   stack <- character(len)
-  current <- x@ll@head
+  current <- x@head
 
   for (i in len:1) {
     stack[i] <- current@VALUE
@@ -244,28 +212,6 @@ method(print, big_num) <- function(x) {
   invisible(x)
 }
 
-# method(print, big_num) <- function(x) {
-#   len <- x@length
-
-#   if (len == 0) {
-#     cat("NA\n")
-#     return(invisible(x))
-#   }
-
-#   stack <- character(len)
-#   current <- x@head
-
-#   for (i in len:1) {
-#     stack[i] <- current@VALUE
-#     current <- current@nxt
-#   }
-
-#   string <- paste0(stack, collapse = "")
-#   cat(string, "\n")
-
-#   invisible(x)
-# }
-
 `+` <- new_external_generic("base", "+", c("e1", "e2"))
 add_helper <- function(node1, node2, carry, sum) {
   digit <- node1@VALUE + node2@VALUE + carry
@@ -277,20 +223,20 @@ add_helper <- function(node1, node2, carry, sum) {
 }
 method(`+`, list(big_num, big_num)) <- function(e1, e2) {
   sum <- big_num()
-  node1 <- e1@ll@head
-  node2 <- e2@ll@head
+  node1 <- e1@head
+  node2 <- e2@head
   carry <- 0
 
-  while (!is.na(node1) && !is.na(node2)) {
+  while (S7_inherits(node1) && S7_inherits(node2)) {
     carry <- add_helper(node1, node2, carry, sum)
     node1 <- node1@nxt
     node2 <- node2@nxt
   }
-  while (!is.na(node1)) {
+  while (S7_inherits(node1)) {
     carry <- add_helper(node1, node(0), carry, sum)
     node1 <- node1@nxt
   }
-  while (!is.na(node2)) {
+  while (S7_inherits(node2)) {
     carry <- add_helper(node2, node(0), carry, sum)
     node2 <- node2@nxt
   }
@@ -307,34 +253,31 @@ method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) + e2
 }
 
-
 # function to remove tail zeros from a `big_num`
 remove_leading_zeros <- function(bn) {
-  ll <- bn@ll
-  # TODO: length is 1 less than it should be still
-  if (ll@length <= 1) {
+  if (bn@length <= 1) {
     return(bn)
   }
 
-  current <- ll@head
+  current <- bn@head
   last_nonzero <- NA
   final_length <- 0
 
-  while (!is.na(current)) {
+  while (S7_inherits(current)) {
     if (current@VALUE != 0) {
       last_nonzero <- current
-      final_length <- ll@length
+      final_length <- bn@length
     } else {
       final_length <- final_length - 1
     }
     current <- current@nxt
   }
 
-  if (is.na(last_nonzero)) {
+  if (!S7_inherits(last_nonzero)) {
     suppressWarnings({
-      ll@head@nxt <- NA
-      ll@tail <- ll@head
-      ll@length <- 1
+      bn@head@nxt <- NA
+      bn@tail <- bn@head
+      bn@length <- 1
     })
 
     return(invisible(bn))
@@ -342,8 +285,8 @@ remove_leading_zeros <- function(bn) {
 
   last_nonzero@nxt <- NA
   suppressWarnings({
-    ll@tail <- last_nonzero
-    ll@length <- final_length
+    bn@tail <- last_nonzero
+    bn@length <- final_length
   })
 
   invisible(bn)
@@ -352,12 +295,12 @@ remove_leading_zeros <- function(bn) {
 `*` <- new_external_generic("base", "*", c("e1", "e2"))
 method(`*`, list(big_num, big_num)) <- function(e1, e2) {
   product <- big_num(0)
-  node2 <- e2@ll@head
+  node2 <- e2@head
   shift2 <- 0
-  while (!is.na(node2)) {
-    node1 <- e1@ll@head
+  while (S7_inherits(node2)) {
+    node1 <- e1@head
     shift1 <- 0
-    while (!is.na(node1)) {
+    while (S7_inherits(node1)) {
       temp <- big_num(node1@VALUE * node2@VALUE)
       replicate(shift1 + shift2, append_to_start(0, temp))
       product <- product + temp
@@ -411,9 +354,7 @@ method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   }
   TRUE
 }
-method(`==`, list(big_num, big_num)) <- function(e1, e2) {
-  e1@ll == e2@ll
-}
+
 method(`==`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 == big_num(e2)
 }

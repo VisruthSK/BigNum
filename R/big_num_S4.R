@@ -1,4 +1,4 @@
-node_or_na_s4 <- function(value) is.na(value) || is(value, "big_num_node_s4")
+node_or_na_s4 <- function(value) is(value, "big_num_node_s4") || is.na(value)
 
 setClass("big_num_node_s4",
   slots = c(
@@ -16,7 +16,7 @@ node_s4 <- function(VALUE, nxt = NA) {
   new("big_num_node_s4", VALUE = VALUE, state = rlang::new_environment(list(nxt = nxt)))
 }
 
-# TODO: copy this in S3 to approximate read only properties
+# TODO: copy this in S3 to approximate read only properties?
 setGeneric("nxt", function(x) standardGeneric("nxt"))
 setMethod("nxt", "big_num_node_s4", function(x) x@state$nxt)
 
@@ -72,3 +72,31 @@ setClass("big_num_s4", contains = "big_num_linked_list_s4")
 big_num_s4 <- function(num = "") {
   as(linked_list_s4(num), "big_num_s4")
 }
+
+setMethod("show", "big_num_linked_list_s4", function(object) {
+  current <- object@state$head
+  while (is(current, "big_num_node_s4")) {
+    cat(current@VALUE, "-> ")
+    current <- current@state$nxt
+  }
+  cat("NA\n")
+})
+
+setMethod("show", "big_num_s4", function(object) {
+  len <- object@state$length
+
+  if (len == 0) {
+    return(cat("NA\n"))
+  }
+
+  stack <- character(len)
+  current <- object@state$head
+
+  for (i in len:1) {
+    stack[i] <- current@VALUE
+    current <- current@state$nxt
+  }
+
+  string <- paste0(stack, collapse = "")
+  cat(string, "\n")
+})
