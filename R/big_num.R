@@ -1,5 +1,6 @@
 # TODO: pull out latter part of statement and rewrite as `is_node(x)`
 node_or_na <- function(value) S7_inherits(value, node) || is.na(value) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
+# TODO: change to use unions if possible? `NA | node`?
 
 node <- new_class("node",
   package = "BigNum",
@@ -113,17 +114,6 @@ linked_list <- new_class("linked_list",
   }
 )
 
-#' Infinite precision natural number using a singly linked list
-#'
-#' @description
-#' TODO: WRITE THIS
-#'
-#' The `big_num` class is essentially a wrapper around [linked_list]
-#' with a custom print method as well as some defined operators such as
-#' `+`, `*`, and `^` with an integer.
-#'
-#' @export
-#' @param num A string representation of a num.
 big_num <- new_class("big_num",
   parent = linked_list,
   package = "BigNum",
@@ -131,9 +121,6 @@ big_num <- new_class("big_num",
     new_object(linked_list(num))
   }
 )
-
-# is.na <- new_external_generic("base", "is.na", "x")
-# method(is.na, node) <- function(x) !S7_inherits(x, node)
 
 is_even <- new_generic("is_even", c("x"))
 method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
@@ -179,8 +166,8 @@ method(append_to_start, list(class_numeric, linked_list)) <- function(x, ll) {
   append_to_start(node(x), ll)
 }
 
-print <- new_external_generic("base", "print", "x")
-method(print, linked_list) <- function(x) {
+baseprint <- new_external_generic("base", "print", "x")
+method(baseprint, linked_list) <- function(x) {
   current <- x@head
   while (S7_inherits(current)) {
     cat(current@VALUE, "-> ")
@@ -190,7 +177,7 @@ method(print, linked_list) <- function(x) {
 
   invisible(x)
 }
-method(print, big_num) <- function(x) {
+method(baseprint, big_num) <- function(x) {
   len <- x@length
 
   if (len == 0) {

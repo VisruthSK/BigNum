@@ -6,6 +6,7 @@ rmpfr_test_multiplication <- function(string_num_1, string_num_2) {
   expect_equal(big_num(string_num_1) * big_num(string_num_2), big_num(string_num_solution))
 }
 
+
 test_that("multiplication commutes", {
   expect_equal((big_num(2) * big_num(2)), big_num(4))
 

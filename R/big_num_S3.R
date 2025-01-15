@@ -51,10 +51,6 @@ big_num_s3 <- function(num = "") {
   structure(linked_list_s3(num), class = c("big_num_s3", "big_num_linked_list_s3"))
 }
 
-# is.na.node_s3 <- function(x) {
-#   \!inherits(x, "big_num_node_s3")
-# }
-
 #' @export
 is_even_s3 <- function(x) {
   UseMethod("is_even_s3")
@@ -69,7 +65,6 @@ bn_append_s3 <- function(x, ll) {
   UseMethod("bn_append_s3")
 }
 
-# TODO: fix this later
 #' @export
 bn_append_s3.big_num_node_s3 <- function(x, ll) {
   if (!inherits(ll$state$head, "big_num_node_s3")) {
