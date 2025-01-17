@@ -30,13 +30,14 @@ This package was created for a number of reasons. Chief among those is to provid
 
 Here's an unordered list of some nice things about S7. I won't directly address these ideas, but you can observe them throughout the code.
 
-1.  Just the right amount of formal
-2.  Just the right amount of flexible
+1.  Just the right amount of formality
+2.  Just the right amount of flexibility
 3.  Cogent API
 4.  Easy to extend
 5.  Classes, properties, validators, etc. give nice guarantees
+6.  Simple to swap to from S3
 
-S7 is elegantly formal. I first encountered S3 when speaking to Dr Bodwin; the topic came up somehow and she showed me how simple and flexible S3 is with an example, something like:
+S7 marries (most of) the flexibility of S3 with (most of) the formality of S4. I find it strikes a perfect middle ground which makes it easier to dictate and understand what objects of type `<T>` can and can't do. S7 is elegantly formal. I first encountered S3 when speaking to Dr Bodwin; the topic came up somehow and she showed me how simple and flexible S3 is with an example, something like:
 
 ```{r}
 x <- 1:10
@@ -59,7 +60,7 @@ mean.test <- function(x){
 mean(structure(1:10, class = "test"))
 ```
 
-but I think this is harder to reason about. The idea of just giving a garden variety vector `1:10` a whole class without really defining what that class is, is strange to me. I find it hard sometimes to understand what things are. S7 makes it very clear what things are; I find this easier to reason about. This is something I noted firsthand when swapping to S7 in some Tidyverse packages. Even with well documented code, it can be hard to understand how things work.
+but I think this is harder to reason about. The idea of just giving a garden variety vector `1:10` a whole class without really defining what that class is, is strange to me. I find it hard sometimes to understand what S3 objects are and how they interact with methods. S7 makes it very clear what things are; I find this easier to reason about. This is something I noted firsthand when swapping to S7 in some Tidyverse packages. Even with well documented code, it can be hard to understand how things work.
 
 S7 may be formal, but it is also elegant–there are nice design patterns that can be implemented effortlessly. Take, for example, this implementation of some `Shape`s.
 
@@ -86,7 +87,7 @@ This was a quick and dirty implementation I wrote in a few minutes (for somethin
 It can easily be extended to admit a `Square` class:
 
 ```{r}
-Square <- new_class("Square", Rect, constructor = function(side) new_object(Square, width = side, height = side))
+Square <- new_class("Square", Rect, constructor = function(side) new_object(S7_object(), width = side, height = side))
 square <- Square(5)
 
 Area(square)
@@ -100,28 +101,70 @@ positive_numeric <- new_property(class_numeric, validator = function(value) if(v
 Circle <- new_class("Circle", Shape, properties = list(radius = positive_numeric))
 Rect <- new_class("Rect", Shape, properties = list(width = positive_numeric, height = positive_numeric))
 
-# Rect(0, 4)
+Rect(0, 4)
 #> ! <Rect> object properties are invalid:
 #> - @width must be greater than 0
 
-# Circle(-10)
+Circle(-10)
 #> ! <Circle> object properties are invalid:
 #> - @radius must be greater than 0
 
 # and of course this still holds for Squares
-# Square(-1)
+Square(-1)
 #> ! <Square> object properties are invalid:
 #> - @width must be greater than 0
 #> - @height must be greater than 0
 ```
 
-This is hardly the most interesting example (hence the package!), and these aren't the most groundbreaking principles, but having these OOP ideas are very nice. They're presented in a cogent API and allow you to spell out what you need to do: `new_class()`, `new_generic()`, `new_external_generic()`, `method()`, etc. The formality and structure that S7 provides manifests as interpretable, clean code. Most importantly, it is readable code.
+We could also compute area in a property instead of a method:
+
+```{r}
+positive_numeric <- new_property(class_numeric, validator = function(value) if (value <= 0) "must be greater than 0")
+
+Shape <- new_class("Shape", abstract = TRUE)
+Circle <- new_class(
+  "Circle",
+  Shape,
+  properties = list(radius = positive_numeric, area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)),
+  constructor = function(radius) new_object(S7_object(), radius = radius)
+)
+Rect <- new_class(
+  "Rect",
+  Shape,
+  properties = list(width = positive_numeric, height = positive_numeric, area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)),
+  constructor = function(width, height) new_object(S7_object(), width = width, height = height)
+)
+Square <- new_class("Square", Rect, constructor = function(side) new_object(S7_object(), width = side, height = side))
+
+circ <- Circle(10)
+circ
+#> <Circle>
+#>  @ radius: num 10
+#>  @ area  : num 314    
+                    
+circ@area <- 10
+#> ! Can't set read-only property <Circle>@area
+                    
+Rect(10, 3)
+#> <Rect>
+#>  @ width : num 10
+#>  @ height: num 3
+#>  @ area  : num 30
+                    
+Square(5)
+#> <Square>
+#>  @ width : num 5
+#>  @ height: num 5
+#>  @ area  : num 25
+```
+
+`Shapes` are hardly the most interesting example (hence the package!), and these aren't the most groundbreaking principles, but having these OOP ideas in R is very nice. They're presented in a cogent API and allow you to spell out what you need to do: `new_class()`, `new_generic()`, `new_external_generic()`, `method()`, etc. This allows formality without being stuffy or verbose. The structure that S7 provides manifests as interpretable, clean code. Most importantly, it is very readable code.
 
 #### Some Random Thoughts/Interesting Points
 
 ##### Read Only Properties
 
-You can set read only properties with S7, which you can observe in the package (ALLCAPS properties are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node. You can, of course, bypass this:
+You can set read only properties with S7, which you can observe in the package (properties in ALLCAPS are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node. You can, of course, bypass this:
 
 ```{r}
 # https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties
@@ -147,7 +190,7 @@ tmp
 
 but you clearly have to go out of your way to. Normal usage of `eg` objects, with the exposed API, would ensure that you don't accidentally change constants.
 
-You can also do cool stuff with [computed/dynamic properties](https://rconsortium.github.io/S7/articles/classes-objects.html#properties).
+You can also do cool stuff with [computed/dynamic properties](https://rconsortium.github.io/S7/articles/classes-objects.html#properties). The last implementation of `Shape`s above uses this to compute the area dynamically–thus allowing the area to change as you adjust the measurements of a shape.
 
 ##### Var Args
 
@@ -161,9 +204,7 @@ function(...){
 
 ##### State
 
-You have to use environments to get state in S7 (again, see package)--but I have it on very strong authority that a stateful S7 is being thought of. Don't quote me on that.
-
-S7 marries (most of) the flexibility of S3 with (most of) the formality of S4. I find it strikes a perfect middle ground which makes it easier to dictate what objects of type `<T>` can and can't do.
+You have to use environments to get state in S7 (again, see package)--but I have it on strong authority that a stateful S7 is being thought of. Don't quote me on that.
 
 ### BigNum
 
