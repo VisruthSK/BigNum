@@ -18,15 +18,15 @@ Let's start with the most interesting part: S7.
 
 ["The S7 package is a new OOP system designed to be a successor to S3 and S4." - R Consortium Object-Oriented Programming Working Group.](https://rconsortium.github.io/S7/)
 
-S7 is a new way to do OOP in R, and I think it is fantastic. The quote above links to the official S7 website, which contains a great deal of information regarding S7--its origins, features, compatibility, specifications, etc. I think any developer who wishes to use S7 should certainly study that website. It is quite cogent and detailed, and I use it as a reference all the time–its practically an extra chapter of Advanced R. This package is meant to be used in conjunction with the S7 website, hopefully serving as a (slightly non-contrived) implementation which can be used to understand how S7 can work in practice.
+S7 is a new way to do OOP in R, and I think it is fantastic. The quote above links to the official S7 website, which contains a great deal of information regarding S7--its origins, features, compatibility, specifications, etc. I think any developer who wishes to use S7 should certainly study that website. It is quite cogent and detailed, and I use it as a reference all the time–its practically an extra chapter of [Advanced R](https://adv-r.had.co.nz/). This package is meant to be used in conjunction with the S7 website, hopefully serving as a (slightly non-contrived) implementation which can be used to understand how S7 can work in practice.
 
-Some goals of the project, viz. with regards to S7:
+Some goals of the project, with regards to S7:
 
 Since S7 is so new, and is still technically experimental, major changes to the API [aren't off the table](https://rconsortium.github.io/S7/index.html?q=experimental#s7). As such, for this project to be effective, it will be updated with S7 as the OOP system matures. The package's major version will follow S7, which is why this (will) release into 2.0.0. Best practices, as and when they are developed, will be implemented to serve as an effective, worked out example for S7 package development.
 
 ### Why S7?
 
-This package was created for a number of reasons. Chief among those is to provide a worked example of S7 in a package context, but it was also written to purvey the benefits of S7, and posit it as the next R OOP paradigm you should reach for. I highly recommend listening to Hadley's talk on S7 (then called R7) at posit::conf(2022) (link in references--thank you [Dr Bodwin](https://www.kelly-bodwin.com/) for showing this to me!), and reading the S7 webpage to get arguments for S7 from very bright people. This section can be skipped--or at least skimmed--if you (like me) are convinced that S7 is the way to go.
+This package was created for a number of reasons. Chief among those is to provide a worked example of S7 in a package context, but it was also written to purvey the benefits of S7, and posit it as the next R OOP paradigm you should reach for. I highly recommend listening to [Hadley's talk on S7 (then called R7) at posit::conf(2022)](https://www.youtube.com/watch?v=P3FxCvSueag) (thank you [Dr Bodwin](https://www.kelly-bodwin.com/) for showing this to me!), and reading the S7 webpage to get arguments for S7 from very bright people. This section can be skipped--or at least skimmed--if you (like me) are convinced that S7 is the way to go.
 
 Here's an unordered list of some nice things about S7. I won't directly address these ideas, but you can observe them throughout the code.
 
@@ -50,7 +50,7 @@ mean(x)
 #> [1] "HELLO WORLD"
 ```
 
-I was shocked at how easy it was to defined a class and write its method for a generic, especially since my knowledge of OOP was mostly in Java (which is very verbose.) The flexibility offers a lot of obvious benefits, but it does come with some drawbacks. Firstly, I think it can be a bit hard to understand; I still find S3 object construction a bit strange. For example, if I wanted to skip `x`'s declaration, I could've written instead:
+I was shocked at how easy it was to defined a class and write its method for a generic, especially since my knowledge of OOP was mostly in Java (which is very verbose). The flexibility offers a lot of obvious benefits, but it does come with some drawbacks. Firstly, I think it can be a bit hard to understand; I still find S3 object construction a bit strange. For example, if I wanted to skip `x`'s declaration, I could've written instead:
 
 ```{r}
 mean.test <- function(x){
@@ -60,7 +60,7 @@ mean.test <- function(x){
 mean(structure(1:10, class = "test"))
 ```
 
-but I think this is harder to reason about. The idea of just giving a garden variety vector `1:10` a whole class without really defining what that class is, is strange to me. I find it hard sometimes to understand what S3 objects are and how they interact with methods. S7 makes it very clear what things are; I find this easier to reason about. This is something I noted firsthand when swapping to S7 in some Tidyverse packages. Even with well documented code, it can be hard to understand how things work.
+but I think this is harder to reason about. The idea of just giving a garden variety vector `1:10` a whole class without really defining what that class is, is strange to me. I find it hard sometimes to understand what S3 objects are and how they interact with methods. S7 makes it very clear what things are; I find this easier to reason about. This is something I noted firsthand when swapping to S7 in some [tidyverse](https://www.tidyverse.org/) packages. Even with well documented code, it can be hard to understand how things work.
 
 S7 may be formal, but it is also elegant–there are nice design patterns that can be implemented effortlessly. Take, for example, this implementation of some `Shape`s.
 
@@ -82,7 +82,7 @@ Area(circ)
 Area(rect)
 ```
 
-This was a quick and dirty implementation I wrote in a few minutes (for something else.)
+This was a quick and dirty implementation I wrote in a few minutes.
 
 It can easily be extended to admit a `Square` class:
 
@@ -158,13 +158,13 @@ Square(5)
 #>  @ area  : num 25
 ```
 
-`Shapes` are hardly the most interesting example (hence the package!), and these aren't the most groundbreaking principles, but having these OOP ideas in R is very nice. They're presented in a cogent API and allow you to spell out what you need to do: `new_class()`, `new_generic()`, `new_external_generic()`, `method()`, etc. This allows formality without being stuffy or verbose. The structure that S7 provides manifests as interpretable, clean code. Most importantly, it is very readable code.
+`Shapes` are hardly the most interesting example (hence the package!), and these aren't the most groundbreaking principles, but having these OOP ideas in R is very nice. They're presented in a cogent API and allow you to spell out what you need to do: `new_class()`, `new_generic()`, `new_external_generic()`, `method()`, etc. This allows formality without being overly stuffy or verbose. The structure that S7 provides manifests as interpretable, clean code. Most importantly, it is very readable code.
 
-#### Some Random Thoughts/Interesting Points
+### Some Random Thoughts/Interesting Points
 
 ##### Read Only Properties
 
-You can set read only properties with S7, which you can observe in the package (properties in ALLCAPS are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node. You can, of course, bypass this:
+You can set read only properties with S7, which you can observe in the package (properties in ALLCAPS are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node. 
 
 ```{r}
 # https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties
@@ -181,7 +181,11 @@ tmp
 
 # tmp@VALUE  <- 1
 #> ! @VALUE is read only.
+```
 
+You can, of course, bypass this:
+
+```{r}
 attr(tmp, "VALUE") <- 1
 tmp
 #> <eg>
