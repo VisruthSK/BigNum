@@ -1,5 +1,5 @@
 rmpfr_test_multiplication <- function(string_num_1, string_num_2) {
-  # using Rmpfr to check big_num's accuracy
+  # using Rmpfr to verify big_num's accuracy
   num <- Rmpfr::mpfr(string_num_1, 200) * Rmpfr::mpfr(string_num_2, 200)
   string_num_solution <- as(num, "character")
 

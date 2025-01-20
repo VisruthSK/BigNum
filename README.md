@@ -276,13 +276,13 @@ Firstly, it is important to note that this is wholly a *toy* package. Whilst the
 
 I wrote the S7 implementation first, and have since expanded to a S3 and S4 implementation (and might add a rough R6 one too?). These three versions (S3, S4, S7) have rough feature parity, but part of this project is to highlight the benefits of S7 so there are things you can't do (or at least, can't do as easily) in the other OOP structures.
 
-So why BigNum specifically? Well, mostly because it's easy to implement. The BigNum project is taken from my CSC 203 class, a OOP course at Cal Poly. I already had all the methods implemented (in Java) and a clear idea of what I needed to do and how, with the main work being in porting design to R as opposed to novel thought. This greatly simplified dev time since I had a reference implementation to use. **Importantly,** **this (along with my lack of experience) could lead to unidiomatic R/S7 code and design patterns.** **If you notice anything strange, please open an issue/PR!**
+So why BigNum specifically? Well, mostly because it's easy to implement. The BigNum project is taken from my CSC 203 class, an OOP course at Cal Poly. I already had all the methods implemented (in Java) and a clear idea of what I needed to do and how, with the main work being in porting design to R as opposed to novel thought. This greatly simplified dev time since I had a reference implementation to use. **Importantly,** **this (along with my lack of experience) could lead to unidiomatic R/S7 code and design patterns.** **If you notice anything strange, please open an issue/PR!**
 
-I haven't developed an R package before, and so that provided additional motivation for me to create this project. That also means that this package is certainly written sub-optimally. Additionally, my experience with S7 is extremely limited–I would be extremely grateful for any and all R sourcerers who can rain issues and pull requests down from the heavens fixing all my mistakes :)
+I haven't developed an R package before, and so that provided additional motivation for me to create this project. That also means that this package is certainly written sub-optimally. Additionally, my experience with S7 is extremely limited--I would be extremely grateful for any and all R sourcerers who can rain issues and pull requests down from the heavens fixing all my mistakes :)
 
 ## Acknowledgements
 
-Thank you Dr T and Dr Bodwin for helping with this project!
+Thank you Dr Theobold and Dr Bodwin for helping with this project!
 
 ## References
 

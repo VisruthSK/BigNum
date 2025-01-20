@@ -50,7 +50,7 @@ linked_list <- new_class("linked_list",
       getter = function(self) self@state$head,
       setter = function(self, value) {
         # TODO: kick up to error?
-        warning("@head should not be set manually. Maybe you meant to use `append_to_start()`?", call. = FALSE)
+        warning("@head should not be set manually. Did you mean to use `append_to_start()`?", call. = FALSE)
 
         my_env <- self@state
         my_env$head <- value
@@ -125,7 +125,7 @@ big_num <- new_class("big_num",
 is_even <- new_generic("is_even", c("x"))
 method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
 
-# TODO: rewrite to be external generic?
+# TODO: rewrite to be external generic? `base::append()`
 bn_append <- new_generic("bn_append", c("x", "ll"))
 method(bn_append, list(node, linked_list)) <- function(x, ll) {
   suppressWarnings({

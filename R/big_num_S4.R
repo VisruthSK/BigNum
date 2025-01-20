@@ -34,11 +34,7 @@ setMethod("VALUE<-", "big_num_node_s4", function(x, value) {
   stop("Can't set read-only property VALUE ")
 })
 
-setClass("big_num_linked_list_s4",
-  slots = c(
-    state = "environment"
-  )
-)
+setClass("big_num_linked_list_s4", slots = c(state = "environment"))
 
 linked_list_s4 <- function(num = NULL) {
   force(num)

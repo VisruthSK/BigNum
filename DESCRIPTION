@@ -2,7 +2,7 @@ Package: BigNum
 Title: An S7 Showcase
 Version: 0.0.0.9000
 Authors@R: 
-    person("Visruth", "Srimath Kandali", , "visruth@gmail.com", role = c("aut", "cre"),
+    person("Visruth", "Srimath Kandali", , "public@visruth.com", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0005-9097-0688"))
 Description: A toy package designed to showcase and serve as a
     reference/tutorial for S7 development. To be used in conjunction with
