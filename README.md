@@ -2,7 +2,7 @@
 
 Written for `S7 0.2.0.`
 
-```         
+```r         
 pak::pkg_install("VisruthSK/BigNum")
 ```
 
