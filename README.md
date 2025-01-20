@@ -68,8 +68,19 @@ S7 may be formal, but it is also elegant–there are nice design patterns that c
 library(S7)
 
 Shape <- new_class("Shape", abstract = TRUE)
-Circle <- new_class("Circle", Shape, properties = list(radius = class_numeric))
-Rect <- new_class("Rect", Shape, properties = list(width = class_numeric, height = class_numeric))
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = class_numeric
+  )
+)
+Rect <- new_class("Rect",
+  Shape,
+  properties = list(
+    width = class_numeric,
+    height = class_numeric
+  )
+)
 
 Area <- new_generic("Area", "x")
 method(Area, Circle) <- \(x) pi * x@radius^2
@@ -87,7 +98,12 @@ This was a quick and dirty implementation I wrote in a few minutes.
 It can easily be extended to admit a `Square` class:
 
 ```{r}
-Square <- new_class("Square", Rect, constructor = function(side) new_object(S7_object(), width = side, height = side))
+Square <- new_class("Square",
+  Rect,
+  constructor = function(side) {
+    new_object(S7_object(), width = side, height = side)
+  }
+)
 square <- Square(5)
 
 Area(square)
@@ -96,10 +112,26 @@ Area(square)
 And, more usefully, our classes can be (minimally) changed to guarantee that the provided values are positive–being numeric is already ensured by using `class_numeric`, even in the original definitions.
 
 ```{r}
-positive_numeric <- new_property(class_numeric, validator = function(value) if(value <= 0) "must be greater than 0")
+positive_numeric <- new_property(class_numeric,
+  validator = function(value) {
+    if (value <= 0) "must be greater than 0"
+  }
+)
 
-Circle <- new_class("Circle", Shape, properties = list(radius = positive_numeric))
-Rect <- new_class("Rect", Shape, properties = list(width = positive_numeric, height = positive_numeric))
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = positive_numeric
+  )
+)
+Rect <- new_class("Rect",
+  Shape,
+  properties = list
+  (
+    width = positive_numeric,
+    height = positive_numeric
+  )
+)
 
 Rect(0, 4)
 #> ! <Rect> object properties are invalid:
@@ -119,23 +151,42 @@ Square(-1)
 We could also compute area in a property instead of a method:
 
 ```{r}
-positive_numeric <- new_property(class_numeric, validator = function(value) if (value <= 0) "must be greater than 0")
+positive_numeric <- new_property(class_numeric,
+  validator = function(value) {
+    if (value <= 0) "must be greater than 0"
+  }
+)
 
 Shape <- new_class("Shape", abstract = TRUE)
 Circle <- new_class(
   "Circle",
   Shape,
-  properties = list(radius = positive_numeric, area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)),
-  constructor = function(radius) new_object(S7_object(), radius = radius)
+  properties = list(
+    radius = positive_numeric,
+    area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
+  ),
+  constructor = function(radius) {
+    new_object(S7_object(), radius = radius)
+  }
 )
 Rect <- new_class(
   "Rect",
   Shape,
-  properties = list(width = positive_numeric, height = positive_numeric, area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)),
-  constructor = function(width, height) new_object(S7_object(), width = width, height = height)
+  properties = list(
+    width = positive_numeric,
+    height = positive_numeric,
+    area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)
+  ),
+  constructor = function(width, height) {
+    new_object(S7_object(), width = width, height = height)
+  }
 )
-Square <- new_class("Square", Rect, constructor = function(side) new_object(S7_object(), width = side, height = side))
-
+Square <- new_class("Square",
+  Rect,
+  constructor = function(side) {
+    new_object(S7_object(), width = side, height = side)
+  }
+)
 circ <- Circle(10)
 circ
 #> <Circle>
@@ -168,11 +219,18 @@ You can set read only properties with S7, which you can observe in the package (
 
 ```{r}
 # https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties
-eg <- new_class("eg", properties = list(VALUE = new_property(class_any, setter = function(self, value){
-    if(!is.null(self@VALUE)) stop("@VALUE is read only.")
-    self@VALUE <- value
-    self
-})))
+eg <- new_class("eg",
+  properties = list(
+    VALUE = new_property(
+      class_any,
+      setter = function(self, value) {
+        if (!is.null(self@VALUE)) stop("@VALUE is read only.")
+        self@VALUE <- value
+        self
+      }
+    )
+  )
+)
 
 tmp <- eg(10)
 tmp
@@ -221,6 +279,10 @@ I wrote the S7 implementation first, and have since expanded to a S3 and S4 impl
 So why BigNum specifically? Well, mostly because it's easy to implement. The BigNum project is taken from my CSC 203 class, a OOP course at Cal Poly. I already had all the methods implemented (in Java) and a clear idea of what I needed to do and how, with the main work being in porting design to R as opposed to novel thought. This greatly simplified dev time since I had a reference implementation to use. **Importantly,** **this (along with my lack of experience) could lead to unidiomatic R/S7 code and design patterns.** **If you notice anything strange, please open an issue/PR!**
 
 I haven't developed an R package before, and so that provided additional motivation for me to create this project. That also means that this package is certainly written sub-optimally. Additionally, my experience with S7 is extremely limited–I would be extremely grateful for any and all R sourcerers who can rain issues and pull requests down from the heavens fixing all my mistakes :)
+
+## Acknowledgements
+
+Thank you Dr T and Dr Bodwin for helping with this project!
 
 ## References
 
