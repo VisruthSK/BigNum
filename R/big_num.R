@@ -118,6 +118,7 @@ big_num <- new_class("big_num",
   parent = linked_list,
   package = "BigNum",
   constructor = function(num = "") {
+    if (!is.character(num)) warning("Use strings to make big_nums.", call. = FALSE)
     new_object(linked_list(num))
   }
 )
@@ -166,7 +167,6 @@ method(append_to_start, list(class_numeric, linked_list)) <- function(x, ll) {
   append_to_start(node(x), ll)
 }
 
-print <- new_external_generic("base", "print", "x")
 method(print, linked_list) <- function(x) {
   current <- x@head
   while (S7_inherits(current)) {
@@ -199,7 +199,6 @@ method(print, big_num) <- function(x) {
   invisible(x)
 }
 
-`+` <- new_external_generic("base", "+", c("e1", "e2"))
 add_helper <- function(node1, node2, carry, sum) {
   digit <- node1@VALUE + node2@VALUE + carry
   carry <- digit %/% 10
@@ -279,7 +278,6 @@ remove_leading_zeros <- function(bn) {
   invisible(bn)
 }
 
-`*` <- new_external_generic("base", "*", c("e1", "e2"))
 method(`*`, list(big_num, big_num)) <- function(e1, e2) {
   product <- big_num(0)
   node2 <- e2@head
@@ -307,7 +305,6 @@ method(`*`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) * e2
 }
 
-`^` <- new_external_generic("base", "^", c("e1", "e2"))
 method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
   if (e2 == 0) {
     return(big_num(1))
@@ -324,7 +321,6 @@ method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
   }
 }
 
-`==` <- new_external_generic("base", "==", c("e1", "e2"))
 method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   len <- e1@length
   if (len != e2@length) {
