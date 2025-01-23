@@ -1,0 +1,180 @@
+---
+title: "BigNum"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{BigNum}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(BigNum)
+```
+
+This vignette is written to get you acquainted with `{BigNum}` and `{S7}`, and assumes no knowledge of `{S7}` but does assume basic general knowledge of objected oriented principles and terminology. We highly recommend that you use this package in conjunction with the [S7 website](https://rconsortium.github.io/S7/), but you should also be able to gain a basic understanding of S7 solely through this vignette. We will primarily be using examples from the package.
+
+<!-- ## Getting Started -->
+
+We will start with the example from the readme--`Shape`s. We will be constructing a type hierarchy with Squares, Rectangles, Circles, & Shapes, with the typical relationships (e.g. all Squares are Rectangles, all Rectangles and Circles are Shapes). Let us start with `Shape`s though.
+
+```{r}
+library(S7)
+
+Shape <- new_class("Shape")
+```
+
+This defines a `Shape` class which inherits from the base S7 object and doesn't have any data associated with it. The first argument to `new_class()` as specified in the docs (the S7 website) should be the name of the class as a string. Note that we have only defined a *constructor* and don't have an instance of it.
+
+```{r}
+Shape # class
+```
+
+To get *a* `Shape`, we can call the constructor. Since we haven't given any data to `Shape`, the constructor is an empty function.
+
+```{r}
+Shape() # object
+```
+
+Let us add some data. Let's say that all `Shape`s should store their name, as a character vector.
+
+```{r}
+Shape <- new_class("Shape", properties = list(name = class_character))
+```
+
+::: {.callout-note collapse="true"}
+## Subjective Style Note
+This note can be ignored as it pertains only to style. 
+
+We think that class definitions in general shouldn't be inlined like they are above--however, since it is so short, we think this is an exception. Later we will see longer class definitions and will comment on style again there.
+:::
+
+We use `properties` in `new_class()` to define what data the class holds. S7 objects have *properties* (similar-ish to S4 `slots`), and are defined through a list. We provide the name of the property: `name`, and the type of data it can hold: `class_character`. `class_character` is part of a special set of properties exported by `{S7}`; other common ones include `class_numeric`, `class_logical`, `class_list`, etc. You can find an exhaustive list [on the website](https://rconsortium.github.io/S7/reference/index.html#compatibility). Defining the class of properties upfront allows for some validation through type safety.
+
+We access properties using the `@` syntax, e.g. `object@property`.
+
+```{r}
+square <- Shape("square")
+square@name
+```
+
+It is important to define the correct property type as R will now assert that the property matches the defined type. 
+
+```{r}
+#| error: true
+Shape(10)
+```
+
+Here we attempt to make a `Shape` with a `@name`[^1] of `10`, but since `10` isn't a character, we cannot do this. Note that there is no automatic type coercion. By default, we pass properties to the constructor by position, and the order is determined by the order in `properties`. We can observe properties of the class `Shape` itself the same way we look at properties of S7 objects.
+
+[^1]: We use the `@` symbol (`@property`) to signify that we are talking about a property of some object, just like how you would access it. This is another style thing, and certainly not standard.
+
+```{r}
+Shape@constructor
+```
+
+That is the default constructor--we'll learn how to write a custom constructor later. Let's look at what happens when we add another property.
+
+```{r}
+Shape <- new_class("Shape",
+  properties = list(
+    name = class_character,
+    sides = class_integer
+  )
+)
+```
+
+::: {.callout-note collapse="true"}
+## Subjective Style Note
+Note that this class definition is no longer inlined. In general, we think that (excepting the `name` argument of `new_class()`) one should space arguments out with linebreaks.
+:::
+
+Properties have default values. We can observe them by creating an empty `Shape`:
+
+```{r}
+Shape()
+```
+
+or by looking at the default values in the constructor:
+
+```{r}
+Shape@constructor
+```
+
+Let's add some more `Shape`s, starting with a `Circle`. All Circles are Shapes, so we wish to reflect that in our class definition. We can do that using inheritance, which in S7 is expressed as follows:
+
+```{r}
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = class_numeric
+  )
+)
+```
+
+`new_class()` has a `parent` argument which defaults to `S7_object` (think `Object` in Java), which is the parent class of all S7 objects. We can see this using `class()`[^2]
+
+```{r}
+class(Shape())
+class(Circle())
+```
+
+Inheritance works as you might expect: Circles now have all the methods of Shapes, as well as `@radius`.
+
+Think about if the following would return an error, and why. (Hint: check the class definition again.)
+
+```{r}
+#| eval: false
+Circle("circle", 1, 5)
+```
+
+We defined `@sides` to be an integer, and there is no type coercion, so `1`, a double, won't be accepted.
+
+```{r}
+#| error: true
+Circle("circle", 1, 5)
+```
+
+So we must pass an integer number of sides.
+
+```{r}
+my_circle <- Circle("circle", 1L, 5)
+my_circle
+```
+
+Observe that the default constructor places the properties of the parent class before those of the children.
+
+```{r}
+Circle
+Circle@constructor
+```
+
+You can change this easily using a custom constructor.
+
+Whilst we have some validation to ensure our properties are sensible since `@radius` and `@sides` have to be integers and numerics respectively, we can pass negative values.
+
+```{r}
+Circle("circle", -1L, -10)
+```
+
+This is obviously not desirable. We can restrict this behavior by creating a custom property.
+
+```{r}
+positive_numeric <- new_property(class_numeric,
+  validator = function(value) {
+    if (value <= 0) "must be greater than 0"
+  }
+)
+```
+
+`validator()` is
+
+<!-- https://rconsortium.github.io/S7/articles/classes-objects.html#validation-1 -->
+
+[^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so S3 methods still work like `{sloop}` and `class()`. `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `S7_object` is in `class(your_object)`).

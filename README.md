@@ -2,7 +2,7 @@
 
 Written for `S7 0.2.0.`
 
-```r         
+``` r
 pak::pkg_install("VisruthSK/BigNum")
 ```
 
@@ -39,7 +39,7 @@ Here's an unordered list of some nice things about S7. I won't directly address 
 
 S7 marries (most of) the flexibility of S3 with (most of) the formality of S4. I find it strikes a perfect middle ground which makes it easier to dictate and understand what objects of type `<T>` can and can't do. S7 is elegantly formal. I first encountered S3 when speaking to Dr Bodwin; the topic came up somehow and she showed me how simple and flexible S3 is with an example, something like:
 
-```r
+``` r
 x <- 1:10
 class(x) <- "test"
 mean.test <- function(x){
@@ -52,7 +52,7 @@ mean(x)
 
 I was shocked at how easy it was to defined a class and write its method for a generic, especially since my knowledge of OOP was mostly in Java (which is very verbose). The flexibility offers a lot of obvious benefits, but it does come with some drawbacks. Firstly, I think it can be a bit hard to understand; I still find S3 object construction a bit strange. For example, if I wanted to skip `x`'s declaration, I could've written instead:
 
-```r
+``` r
 mean.test <- function(x){
     "HELLO WORLD"
 }
@@ -64,7 +64,7 @@ but I think this is harder to reason about. The idea of just giving a garden var
 
 S7 may be formal, but it is also elegant–there are nice design patterns that can be implemented effortlessly. Take, for example, this implementation of some `Shape`s.
 
-```r
+``` r
 library(S7)
 
 Shape <- new_class("Shape", abstract = TRUE)
@@ -97,7 +97,7 @@ This was a quick and dirty implementation I wrote in a few minutes.
 
 It can easily be extended to admit a `Square` class:
 
-```r
+``` r
 Square <- new_class("Square",
   Rect,
   constructor = function(side) {
@@ -111,7 +111,7 @@ Area(square)
 
 And, more usefully, our classes can be (minimally) changed to guarantee that the provided values are positive–being numeric is already ensured by using `class_numeric`, even in the original definitions.
 
-```r
+``` r
 positive_numeric <- new_property(class_numeric,
   validator = function(value) {
     if (value <= 0) "must be greater than 0"
@@ -150,7 +150,7 @@ Square(-1)
 
 We could also compute area in a property instead of a method:
 
-```r
+``` r
 positive_numeric <- new_property(class_numeric,
   validator = function(value) {
     if (value <= 0) "must be greater than 0"
@@ -215,9 +215,9 @@ Square(5)
 
 ##### Read Only Properties
 
-You can set read only properties with S7, which you can observe in the package (properties in ALLCAPS are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node. 
+You can set read only properties with S7, which you can observe in the package (properties in ALLCAPS are constants or "final".) That is a very nice way to expose values which you wish users to be aware of but don't want to mess with, like the value of a linked list node.
 
-```r
+``` r
 # https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties
 eg <- new_class("eg",
   properties = list(
@@ -243,7 +243,7 @@ tmp
 
 You can, of course, bypass this:
 
-```r
+``` r
 attr(tmp, "VALUE") <- 1
 tmp
 #> <eg>
@@ -258,7 +258,7 @@ You can also do cool stuff with [computed/dynamic properties](https://rconsortiu
 
 I don't think you can't easily do anything like this in S7 ([yet](https://github.com/RConsortium/S7/issues/515)):
 
-```r
+``` r
 function(...){
     structure(..., class = "test")
 }
@@ -279,6 +279,10 @@ I wrote the S7 implementation first, and have since expanded to a S3 and S4 impl
 So why BigNum specifically? Well, mostly because it's easy to implement. The BigNum project is taken from my CSC 203 class, an OOP course at Cal Poly. I already had all the methods implemented (in Java) and a clear idea of what I needed to do and how, with the main work being in porting design to R as opposed to novel thought. This greatly simplified dev time since I had a reference implementation to use. **Importantly,** **this (along with my lack of experience) could lead to unidiomatic R/S7 code and design patterns.** **If you notice anything strange, please open an issue/PR!**
 
 I haven't developed an R package before, and so that provided additional motivation for me to create this project. That also means that this package is certainly written sub-optimally. Additionally, my experience with S7 is extremely limited--I would be extremely grateful for any and all R sourcerers who can rain issues and pull requests down from the heavens fixing all my mistakes :)
+
+## Usage
+
+I would like to stress that this is a toy package. It is functional, and you can do some things with `big_num`s (viz. construct them from strings, multiply, add, and exponentiate them), but the algorithms implemented are naive, but accurate. I envision this project being most useful as a companion to the website, extending the examples presented there in a cohesive package context.
 
 ## Acknowledgements
 
