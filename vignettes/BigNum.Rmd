@@ -20,9 +20,11 @@ library(BigNum)
 
 This vignette is written to get you acquainted with `{BigNum}` and `{S7}`, and assumes no knowledge of `{S7}` but does assume basic general knowledge of objected oriented principles and terminology. We highly recommend that you use this package in conjunction with the [S7 website](https://rconsortium.github.io/S7/), but you should also be able to gain a basic understanding of S7 solely through this vignette. We will primarily be using examples from the package.
 
-<!-- ## Getting Started -->
+## Classes, Properties, & Objects
 
-We will start with the example from the readme--`Shape`s. We will be constructing a type hierarchy with Squares, Rectangles, Circles, & Shapes, with the typical relationships (e.g. all Squares are Rectangles, all Rectangles and Circles are Shapes). Let us start with `Shape`s though.
+[Website](https://rconsortium.github.io/S7/articles/classes-objects.html)
+
+We will start with the example from the readme--`Shape`s. We will be constructing a type hierarchy with Squares, Rectangles, Circles, and Shapes, with the typical relationships (e.g. all Squares are Rectangles, all Rectangles and Circles are Shapes). Let us start with `Shape`s though.
 
 ```{r}
 library(S7)
@@ -120,17 +122,27 @@ Circle <- new_class("Circle",
 
 `new_class()` has a `parent` argument which defaults to `S7_object` (think `Object` in Java), which is the parent class of all S7 objects. We can see this using `class()`[^2]
 
+[^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so methods for S3 OOP will still work on S7 (e.g. `{sloop}` and `class()`). `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `"S7_object"` is in `class(your_object)`).
+
 ```{r}
 class(Shape())
+
 class(Circle())
 ```
 
 Inheritance works as you might expect: Circles now have all the methods of Shapes, as well as `@radius`.
 
-Think about if the following would return an error, and why. (Hint: check the class definition again.)
+Think about if the following would return an error, and why. (Hint: check the class definition for `Shape` again.)
 
 ```{r}
 #| eval: false
+Shape <- new_class("Shape",
+  properties = list(
+    name = class_character,
+    sides = class_integer
+  )
+)
+
 Circle("circle", 1, 5)
 ```
 
@@ -173,8 +185,173 @@ positive_numeric <- new_property(class_numeric,
 )
 ```
 
-`validator()` is
+`validator()` is how a property's values get validated. The first argument we are passing to `new_property()` is `class_numeric`, telling us that data defined by this property can only be of the class `numeric`. Additionally, our validator checks values, and returns a string if there is an issue. Read more about how validation works [here](https://rconsortium.github.io/S7/articles/classes-objects.html#validation-1) but for our purposes, we can just think of a validator as accepting or rejecting values. `positive_numeric` is sensibly defined to only accept positive numerics, and provides an appropriate error message if faced with negative numbers. Let use it.
 
-<!-- https://rconsortium.github.io/S7/articles/classes-objects.html#validation-1 -->
+```{r}
+Shape <- new_class("Shape",
+  properties = list(
+    name = class_character,
+    sides = new_property(class_integer,
+      validator = function(value) {
+        if (value <= 0) "must be greater than 0"
+      }
+    )
+  )
+)
 
-[^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so S3 methods still work like `{sloop}` and `class()`. `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `S7_object` is in `class(your_object)`).
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = positive_numeric
+  )
+)
+```
+
+
+Before we see how our new classes have appropriate and intuitive behavior, note that we inlined a definition of a custom property analogous to `positive_numeric` but restricted to `integer`s, for `@sides`. We suggest only doing this when you don't intend to reuse the property--it adds some clutter but defining `positive_integer` and never using it seems more wasteful.
+
+```{r}
+#| error: true
+
+Shape("myshape", 0L)
+
+Circle("circle", -1L, -10)
+
+Circle("circle", 1L, -10)
+```
+
+Note that the property name is automatically added to the validator's error message. Let us further explore properties.
+
+```{r}
+positive_numeric <- new_property(class_numeric,
+  validator = function(value) {
+    if (value <= 0) "must be greater than 0"
+  }
+)
+
+Shape <- new_class("Shape", abstract = TRUE)
+
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = positive_numeric
+  )
+)
+```
+
+Here we've included what we've written so far, with a small change to `Shape` to disallow instantiation of arbitrary `Shape`s.
+
+```{r}
+#| error: true
+Shape()
+```
+
+Let's look at some more interesting things we can do with properties.
+
+```{r}
+Circle <- new_class("Circle",
+  Shape,
+  properties = list(
+    radius = positive_numeric,
+    area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
+  )
+)
+```
+
+Here, we are defining the area of a `Circle` through a property, but we aren't setting that property explicitly at construction, like we are with `@radius`. Instead, we are creating a [computed property](https://rconsortium.github.io/S7/articles/classes-objects.html#computed-properties), which also happens to be [frozen](https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties). What that means is that `@area` is calculated when you call it, and the value itself cannot be set. The `getter` is a function in a property that defines what happens when you call `object@property`. It must always take only one argument, self, and returns the value of the property. Here, we can see that `@area`'s getter is defined to grab `@radius` and use that to calculate the area of a circle. The setter defines what happens when you do `obj@property <- value`. In this case, you technically don't need to set setter to `NULL` as that is its default value and would make `@area` a read only property. We advocate for explicitly setting the setter to `NULL` to make it very clear that `@area` is a read only property.
+
+```{r}
+#| error: true
+circ <- Circle(10)
+
+circ@area
+circ@radius <- 20
+circ@area
+
+circ@area <- 0
+```
+
+Circles are getting boring; let's add Rectangles and Squares!
+
+```{r}
+Rect <- new_class("Rect",
+  Shape,
+  properties = list(
+    width = positive_numeric,
+    height = positive_numeric,
+    area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)
+  )
+)
+```
+
+I hope by now the class definition should be pedestrian. The only real difference between `Rect` and `Circle` is that `Rect` has an extra property and a different means to compute area.
+
+```{r}
+Rect(10, 6)
+Rect(10, 10)
+```
+
+We can easily extend our shapes to further include `Square`s.
+
+```{r}
+Square <- new_class("Square",
+  Rect,
+  constructor = function(side) {
+    force(side)
+    new_object(S7_object(), width = side, height = side)
+  }
+)
+```
+
+This is strange though--this class definition is far shorter than `Circle` or `Rect`--what's going on? Here, we are leveraging the idea that all Squares are Rectangles to offload most of the heavy work to `Rect`. We are essentially providing `Square` as an edge case `Rect` with well defined behavior. All we need is to define the parent of `Square` as `Rect` (whose parent is `Shape` whose parent is `S7_object`), and define a short custom constructor. As you can see, the constructor is almost a regular R function--it just ["must always end with a call to `new_object()`"](https://rconsortium.github.io/S7/articles/classes-objects.html#constructors). We can set default values of the object in the constructor itself, or could pass a default value in the property definition.
+
+```{r}
+Square@constructor
+Rect@constructor
+```
+
+We didn't set a default value for `@side` in the constructor, meaning that this won't work:
+
+```{r}
+#| error: true
+Square()
+```
+
+And since `Square`s are `Rect`s, we get all the same nice things.
+
+
+```{r}
+#| error: true
+
+s <- Square(10)
+s
+s@area <- 0
+
+Square(-9)
+```
+
+We could've overwritten `Rect`'s `@area` to exploit our knowledge of `Square`s:
+
+```{r}
+Square <- new_class("Square",
+  Rect,
+  properties = list(
+    area = new_property(class_numeric, getter = function(self) self@width^2, setter = NULL)
+  ),
+  constructor = function(side) {
+    force(side)
+    new_object(S7_object(), width = side, height = side)
+  }
+)
+
+Square(5)
+
+Square@properties$area$getter
+```
+
+There is certainly a lot more to learn about properties and classes, but this should be enough to make you dangerous. The website (and of course `BigNum`) are great places to see and learn more!
+
+## Generics and Methods
+
+[Website](https://rconsortium.github.io/S7/articles/generics-methods.html)
+

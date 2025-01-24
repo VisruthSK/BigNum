@@ -158,28 +158,20 @@ positive_numeric <- new_property(class_numeric,
 )
 
 Shape <- new_class("Shape", abstract = TRUE)
-Circle <- new_class(
-  "Circle",
+Circle <- new_class("Circle",
   Shape,
   properties = list(
     radius = positive_numeric,
     area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
-  ),
-  constructor = function(radius) {
-    new_object(S7_object(), radius = radius)
-  }
+  )
 )
-Rect <- new_class(
-  "Rect",
+Rect <- new_class("Rect",
   Shape,
   properties = list(
     width = positive_numeric,
     height = positive_numeric,
     area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)
-  ),
-  constructor = function(width, height) {
-    new_object(S7_object(), width = width, height = height)
-  }
+  )
 )
 Square <- new_class("Square",
   Rect,
