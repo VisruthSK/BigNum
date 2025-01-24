@@ -62,20 +62,20 @@ mean(structure(1:10, class = "test"))
 
 but I think this is harder to reason about. The idea of just giving a garden variety vector `1:10` a whole class without really defining what that class is, is strange to me. I find it hard sometimes to understand what S3 objects are and how they interact with methods. S7 makes it very clear what things are; I find this easier to reason about. This is something I noted firsthand when swapping to S7 in some [tidyverse](https://www.tidyverse.org/) packages. Even with well documented code, it can be hard to understand how things work.
 
-S7 may be formal, but it is also elegant–there are nice design patterns that can be implemented effortlessly. Take, for example, this implementation of some `Shape`s.
+S7 may be formal, but it is also elegant–there are nice design patterns that can be implemented effortlessly. Take, for example, this implementation of some `Shape`s. This example is revisited and built from the ground up in a vignette; here it is presented without much explanation.
 
 ``` r
 library(S7)
 
 Shape <- new_class("Shape", abstract = TRUE)
 Circle <- new_class("Circle",
-  Shape,
+  parent = Shape,
   properties = list(
     radius = class_numeric
   )
 )
 Rect <- new_class("Rect",
-  Shape,
+  parent = Shape,
   properties = list(
     width = class_numeric,
     height = class_numeric
@@ -99,9 +99,9 @@ It can easily be extended to admit a `Square` class:
 
 ``` r
 Square <- new_class("Square",
-  Rect,
+  parent = Rect,
   constructor = function(side) {
-    new_object(S7_object(), width = side, height = side)
+    new_object(Rect, width = side, height = side)
   }
 )
 square <- Square(5)
@@ -119,13 +119,13 @@ positive_numeric <- new_property(class_numeric,
 )
 
 Circle <- new_class("Circle",
-  Shape,
+  parent = Shape,
   properties = list(
     radius = positive_numeric
   )
 )
 Rect <- new_class("Rect",
-  Shape,
+  parent = Shape,
   properties = list
   (
     width = positive_numeric,
@@ -159,14 +159,14 @@ positive_numeric <- new_property(class_numeric,
 
 Shape <- new_class("Shape", abstract = TRUE)
 Circle <- new_class("Circle",
-  Shape,
+  parent = Shape,
   properties = list(
     radius = positive_numeric,
     area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
   )
 )
 Rect <- new_class("Rect",
-  Shape,
+  parent = Shape,
   properties = list(
     width = positive_numeric,
     height = positive_numeric,
@@ -174,7 +174,7 @@ Rect <- new_class("Rect",
   )
 )
 Square <- new_class("Square",
-  Rect,
+  parent = Rect,
   constructor = function(side) {
     new_object(S7_object(), width = side, height = side)
   }
@@ -301,5 +301,3 @@ Wickham H, Bryan J (2023). *R Packages* (2nd ed.). O'Reilly Media.
     -   Comment code
 
 -   Write tests
-
--   Write a vignette?
