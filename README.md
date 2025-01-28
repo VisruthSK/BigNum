@@ -26,7 +26,7 @@ Since S7 is so new, and is still technically experimental, major changes to the 
 
 ### Why S7?
 
-This package was created for a number of reasons. Chief among those is to provide a worked example of S7 in a package context, but it was also written to purvey the benefits of S7, and posit it as the next R OOP paradigm you should reach for. I highly recommend listening to [Hadley's talk on S7 (then called R7) at posit::conf(2022)](https://www.youtube.com/watch?v=P3FxCvSueag) (thank you [Dr Bodwin](https://www.kelly-bodwin.com/) for showing this to me!), and reading the S7 webpage to get arguments for S7 from very bright people. This section can be skipped--or at least skimmed--if you (like me) are convinced that S7 is the way to go.
+This package was created for a number of reasons. Chief among those is to provide a worked example of S7 in a package context, but it was also written to purvey the benefits of S7, and posit it as the next R OOP paradigm you should reach for. I highly recommend listening to [Hadley's talk on S7 (then called R7) at posit::conf(2022)](https://www.youtube.com/watch?v=P3FxCvSueag) (thank you [Dr Bodwin](https://www.kelly-bodwin.com/) for showing this to me!), and reading the S7 webpage to get arguments for S7 from very bright people. This section can be skipped--or at least skimmed--if you (like me) are convinced that S7 is the way to go. Read the vignette for a gentle introduction to S7.
 
 Here's an unordered list of some nice things about S7. I won't directly address these ideas, but you can observe them throughout the code.
 

@@ -1,5 +1,5 @@
 ---
-title: "BigNum"
+title: "A (Hopefully Gentle) Introduction to S7"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{BigNum}
@@ -15,11 +15,12 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(BigNum)
 library(S7)
 ```
 
-This vignette is written to get you acquainted with `{BigNum}` and S7, and assumes no knowledge of the latter; however, this does assume basic general knowledge of objected oriented principles and terminology. I highly recommend that you use this package in conjunction with the [S7 website](https://rconsortium.github.io/S7/), but ideally you should be able to gain a basic understanding of S7 solely through this vignette. If you are completely new to S7, start with this vignette, check the website as you go (especially if I don't explain something to your liking), and once you've read a section or understood a concept, check the source code of `BigNum` to see some (ideally less trivial) examples.
+This vignette is written to get you acquainted with `{BigNum}` and S7, and assumes no knowledge of the latter; however, this does assume basic general knowledge of objected oriented principles and terminology. I highly recommend that you use this package in conjunction with the [S7 website](https://rconsortium.github.io/S7/), but ideally you should be able to gain a basic understanding of S7 solely through this vignette. If you are completely new to S7, start with this vignette, check the website as you go (especially if I don't explain something to your liking), and once you've read a section or understood a concept, check the source code of `{BigNum}` to see some (ideally less trivial) examples.
+
+It may be paced too slowly, in which case feel free to skip portions you find trivial. This package and the S7 website tend to have more fleshed out examples and more details.
 <!-- We will primarily be using examples from the package. -->
 
 ## Classes, Properties, & Objects
@@ -75,7 +76,7 @@ Shape(10)
 
 Here we attempt to make a `Shape` with a `@name`[^1] of `10`, but since `10` isn't a character, we cannot do this. Note that there is no automatic type coercion. By default, we pass properties to the constructor by position, and the order is determined by the order in `properties`. We can observe properties of the class `Shape` itself the same way we look at properties of S7 objects.
 
-[^1]: I use the `@` symbol (`@property`) to signify that I am talking about a property of some object, just like how you would access it. This is another style thing, and certainly not standard.
+[^1]: I use the `@` symbol (`@property`) to signify that I am talking about a property of some object, just like how you would access it. This is another style thing, and is not standard.
 
 ```{r}
 Shape@constructor
@@ -152,7 +153,7 @@ Circle <- new_class("Circle",
 )
 ```
 
-`new_class()` has a `parent` argument which defaults to `S7_object` (think `Object` in Java), which is the parent class of all S7 objects. We can see this using `class()`[^2]
+`new_class()` has a `parent` argument which defaults to `S7_object` which is the parent class of all S7 objects (think `Object` in Java.) We can see this using `class()`[^2]
 
 [^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so methods for S3 OOP will still work on S7 (e.g. `{sloop}` and `class()`). `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `"S7_object"` is in `class(your_object)`).
 
@@ -195,13 +196,12 @@ my_circle
 Observe that the default constructor places the properties of the parent class before those of the children.
 
 ```{r}
-Circle
 Circle@constructor
 ```
 
-You can change this easily using a custom constructor.
+You can change this easily using a custom constructor, which we will see later.
 
-Whilst we have some validation to ensure our properties are sensible since `@radius` and `@sides` have to be integers and numerics respectively, we can pass negative values.
+Whilst we have some validation to ensure our properties are sensible since `@radius` and `@sides` have to be integers and numerics respectively, we can still pass negative values.
 
 ```{r}
 Circle("circle", -1L, -10)
@@ -217,7 +217,7 @@ positive_numeric <- new_property(class_numeric,
 )
 ```
 
-`validator()` is how a property's values get validated. The first argument we are passing to `new_property()` is `class_numeric`, telling us that data defined by this property can only be of the class `numeric`. Additionally, our validator checks values, and returns a string if there is an issue. Read more about how validation works [here](https://rconsortium.github.io/S7/articles/classes-objects.html#validation-1) but for our purposes, we can just think of a validator as accepting or rejecting values. `positive_numeric` is sensibly defined to only accept positive numerics, and provides an appropriate error message if faced with negative numbers. Let use it.
+`validator()` is how a property's values get validated. The first argument we are passing to `new_property()` is `class_numeric`, telling us that data defined by this property can only be of the class `numeric`. Additionally, our validator checks values, and returns a string if there is an issue. Read more about how validation works [here](https://rconsortium.github.io/S7/articles/classes-objects.html#validation-1) but for our purposes, we can just think of a validator as accepting or rejecting values; returning a string rejects a value. `positive_numeric` is defined to only accept positive numerics, and provides an appropriate error message if faced with negative numbers.
 
 ```{r}
 Shape <- new_class("Shape",
@@ -240,7 +240,7 @@ Circle <- new_class("Circle",
 ```
 
 
-Before we see how our new classes have appropriate and intuitive behavior, note that I inlined a definition of a custom property analogous to `positive_numeric` but restricted to `integer`s, for `@sides`. I suggest only doing this when you don't intend to reuse the property--it adds some clutter but defining `positive_integer` and never using it seems more wasteful.
+Before we see how our new classes have appropriate and intuitive behavior, note that I inlined a definition of a custom property analogous to `positive_numeric` but restricted to `integer`s, for `@sides`. I suggest only doing this when you don't intend to reuse the property--it adds some clutter but defining `positive_integer` and never using it seems more wasteful. Maybe that is better still, though--I'm torn.
 
 ```{r}
 #| error: true
@@ -252,7 +252,9 @@ Circle("circle", -1L, -10)
 Circle("circle", 1L, -10)
 ```
 
-Note that the property name is automatically added to the validator's error message. Let us further explore properties.
+Note that the property name (e.g. `@radiues` or `@sides`) is automatically added to the validator's error message. Don't hardcode that yourself. 
+
+Let us further explore properties.
 
 ```{r}
 positive_numeric <- new_property(class_numeric,
@@ -271,7 +273,7 @@ Circle <- new_class("Circle",
 )
 ```
 
-Here we've included what we've written so far. I used `abstract = TRUE` to tell S7 that we don't ever mean to make a `Shape` object outright. This means the following is now not disallowed:
+Here we've included what we've written so far. I used `abstract = TRUE` to tell S7 that we don't ever mean to make a `Shape` object outright. This means the following is now disallowed:
  <!-- with a small change to `Shape` to disallow instantiation of arbitrary `Shape`s. -->
 
 ```{r}
@@ -291,7 +293,7 @@ Circle <- new_class("Circle",
 )
 ```
 
-Here, we are defining the area of a `Circle` through a property, but we aren't setting that property explicitly at construction, like we are with `@radius`. Instead, we are creating a [computed property](https://rconsortium.github.io/S7/articles/classes-objects.html#computed-properties), which also happens to be [frozen](https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties). What that means is that `@area` is calculated when you call it, and the value itself cannot be set. The `getter` is a function in a property that defines what happens when you call `object@property`. It must always take only one argument, self, and returns the value of the property. Here, we can see that `@area`'s getter is defined to grab `@radius` and use that to calculate the area of a circle. The setter defines what happens when you do `obj@property <- value`. In this case, you technically don't need to set setter to `NULL` as that is its default value and would make `@area` a read only property. I advocate for explicitly setting the setter to `NULL` to make it very clear that `@area` is a read only property.
+Here, we are defining the area of a `Circle` through a property, but we aren't setting that property explicitly at construction, like we are with `@radius`. Instead, we are creating a [computed property](https://rconsortium.github.io/S7/articles/classes-objects.html#computed-properties), which also happens to be [frozen](https://rconsortium.github.io/S7/articles/classes-objects.html#frozen-properties). What that means is that `@area` is calculated when you call it, and the value itself cannot be set. The `getter` is a function in a property that defines what happens when you call `object@property`. It must always take only one argument, `self`, and returns the value of the property. Here, we can see that `@area`'s getter is defined to grab `@radius` and use that to calculate the area of a circle. The setter defines what happens when you do `obj@property <- value`. In this case, you technically don't need to set setter to `NULL` as that is its default value and would make `@area` an immutable property. I advocate for explicitly setting the setter to `NULL` to make it very clear that `@area` is a read only property.
 
 ```{r}
 #| error: true
@@ -304,7 +306,7 @@ circ@area
 circ@area <- 0
 ```
 
-Circles are getting boring; let's add Rectangles and Squares!
+Circles are getting boring; let's add Rectangles and Squares.
 
 ```{r}
 Rect <- new_class("Rect",
@@ -324,7 +326,7 @@ Rect(10, 6)
 Rect(10, 10)
 ```
 
-We can easily extend our shapes to further include `Square`s.
+And now we can easily extend our shapes to further include `Square`s.
 
 ```{r}
 Square <- new_class("Square",
@@ -336,7 +338,9 @@ Square <- new_class("Square",
 )
 ```
 
-Here, we are leveraging the idea that all squares are rectangles to offload most of the heavy work to `Rect`. We are essentially presenting `Square` as an special case `Rect` with well defined behavior. All we need is to define the parent of `Square` as `Rect` (whose parent is `Shape` whose parent is `S7_object`), and define a short custom constructor. vWe can set default values of the object in the constructor itself, or could pass a default value in the property definition. As you can see, the constructor is almost a regular R function--it just ["must always end with a call to `new_object()`"](https://rconsortium.github.io/S7/articles/classes-objects.html#constructors). Another important thing to note is that if you define a custom constructor, ["any subclass will also require a custom constructor"](https://rconsortium.github.io/S7/articles/classes-objects.html#constructors).
+Here, we are leveraging the idea that all squares are rectangles to offload most of the heavy work to `Rect`. We are essentially presenting `Square` as an special case `Rect` with well defined behavior. All we need is to define the parent of `Square` as `Rect` (whose parent is `Shape`, whose parent is `S7_object`), and define a short custom constructor. We can set default values of the object in the constructor itself, or could pass a default value in the property definition.
+
+As you can see, the constructor is almost a regular R function--it just ["must always end with a call to `new_object()`"](https://rconsortium.github.io/S7/articles/classes-objects.html#constructors). Another important thing to note is that if you define a custom constructor, ["any subclass will also require a custom constructor"](https://rconsortium.github.io/S7/articles/classes-objects.html#constructors).
 
 ```{r}
 Square@constructor
@@ -350,7 +354,7 @@ We didn't set a default value for `side` in the constructor, meaning that this w
 Square()
 ```
 
-And since `Square`s are `Rect`s, we get all the same nice things `Rect`s do.
+Since `Square`s are `Rect`s, we get all the same nice things `Rect`s do.
 
 ```{r}
 #| error: true
@@ -383,7 +387,7 @@ Square@properties$area$getter
 
 Note that we can't use `side` in the definition for `@area` since `side` isn't a property--it's just the name we gave to the only argument we take when creating `Square`s.
 
-There is certainly a lot more to learn about properties and classes, but hopefully this has helped you build enough of an understanding of how these constructs work to be able to reason about them. The website (and of course `BigNum`) are great places to see examples and learn more!
+There is certainly a lot more to learn about properties and classes, but hopefully this has helped you build enough of an understanding of how these constructs work to be able to reason about them. The website (and of course `{BigNum}`) are great places to see examples and learn more.
 
 ## Generics and Methods
 
@@ -455,7 +459,7 @@ method(Area, Circle) <- function(shape) {
 }
 ```
 
-The arguments to `new_generic()` are relatively straightforward. We start with the name of the method, which should always be the same as the name you assign the value of `new_generic()` to, just like with Classes. The second argument are the dispatch arguments. S7 uses multiple dispatch, which means that multiple objects can be used to determine the correct method for a given generic. `BigNum` uses multiple dispatch (see definition of operators), but for this example we will rely on single dispatch. We pass the title of the argument(s) we wish to dispatch on. We aren't passing the dots here, and [read the website](https://rconsortium.github.io/S7/articles/generics-methods.html#generic-method-compatibility) to see what that implies.
+The arguments to `new_generic()` are relatively straightforward. We start with the name of the method, which should always be the same as the name you assign the value of `new_generic()` to, just like with Classes. The second argument are the dispatch arguments. S7 uses multiple dispatch, which means that multiple objects can be used to determine the correct method for a given generic. `{BigNum}` uses multiple dispatch (see definition of operators), but for this example we will rely on single dispatch. We pass the title of the argument(s) we wish to dispatch on. We aren't passing the dots here, and [read the website](https://rconsortium.github.io/S7/articles/generics-methods.html#generic-method-compatibility) to see what that implies.
 
 After that comes a method implementation. `method()` is very flexible, and allows you to register methods for a variety of generics: viz. for [an S7 generic, an external generic, an S3 generic, or an S4 generic.](https://rconsortium.github.io/S7/reference/method.html) We specify the generic we are defining a method for, and then the class we are adding behavior to. We implement the actually functionality in a garden variety R function--except it must have the named argument as defined in the generic:
 
@@ -466,7 +470,7 @@ method(Area, Circle) <- function(x) {
 }
 ```
 
-And now we can calculate the area of `Circle`s!
+And now we can calculate the area of `Circle`s.
 
 ```{r}
 Area(Circle(10))
@@ -528,7 +532,7 @@ method(length, Rect) <- function(x) {
 length(Square(5))
 ```
 
-If you need to define behavior for a generic defined in another package, you can use [`new_external_generic()`](https://rconsortium.github.io/S7/reference/new_external_generic.html). Example from that site:
+If you need to define behavior for a generic defined in another package, you can use [`new_external_generic()`](https://rconsortium.github.io/S7/reference/new_external_generic.html). Example from the site:
 
 ```{r}
 median_Shapes <- new_external_generic("stats", "median", "x")
@@ -538,6 +542,8 @@ method(median_Shapes, Shape) <- function(x) {
 
 median(Rect(4, 2))
 ```
+
+Note that this isn't necessary for `base`, `stats`, etc. functions, but would be if you wish to register a method for a generic defined in another package--i.e. an external generic. This example is just to let you see the syntax and usage.
 
 Since S7 is built atop of S3, you could do something like this:
 
@@ -550,8 +556,8 @@ median(Rect(4, 2))
 
 but I strongly recommend that you use `method()` instead.
 
-There are far more details on the website's [Generics and Methods page](https://rconsortium.github.io/S7/articles/generics-methods.html), give it a read!
+There are far more details on the website's [Generics and Methods page](https://rconsortium.github.io/S7/articles/generics-methods.html).
 
 ## Conclusion
 
-Equipped with this knowledge of S7, you should hopefully be able to understand how the package and S7 works--or at the very least, know enough to know what to search or learn. You should probably be able to understand how the package works, which I hope is a more interesting (and certainly more fleshed out) example than the `Shape`s we looked at!
+Equipped with this knowledge of S7, you should hopefully be able to understand how this package and S7 works--or at the very least, know enough to know what to search or learn. I'd suggest reading through the source code of the package next, which I hope is a more interesting (and certainly more fleshed out) example than the `Shape`s we looked at. Additionally, the code in the package is slightly different as it is in a package, unlike the examples shown.

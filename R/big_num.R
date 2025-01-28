@@ -167,7 +167,7 @@ method(append_to_start, list(class_numeric, linked_list)) <- function(x, ll) {
   append_to_start(node(x), ll)
 }
 
-method(print, linked_list) <- function(x) {
+method(print, linked_list) <- function(x, ...) {
   current <- x@head
   while (S7_inherits(current)) {
     cat(current@VALUE, "-> ")
@@ -177,7 +177,7 @@ method(print, linked_list) <- function(x) {
 
   invisible(x)
 }
-method(print, big_num) <- function(x) {
+method(print, big_num) <- function(x, ...) {
   len <- x@length
 
   if (len == 0) {

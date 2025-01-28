@@ -9,7 +9,7 @@
 A toy package designed to showcase and serve as a reference/tutorial for S7 development. To be used in conjunction with the S7 package website.
 }
 \author{
-\strong{Maintainer}: Visruth Srimath Kandali \email{visruth@gmail.com} (\href{https://orcid.org/0009-0005-9097-0688}{ORCID})
+\strong{Maintainer}: Visruth Srimath Kandali \email{public@visruth.com} (\href{https://orcid.org/0009-0005-9097-0688}{ORCID})
 
 }
 \keyword{internal}
