@@ -1,148 +1,80 @@
-# TODO: pull out latter part of statement and rewrite as `is_node(x)`
-node_or_na <- function(value) S7_inherits(value, node) || is.na(value) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
-# TODO: change to use unions if possible? `NA | node`?
+same_type <- function(x, y) {
+  identical(S7_class(x), S7_class(y))
+}
 
-node <- new_class(
-  "node",
-  package = "BigNum",
+node_stub <- new_external_class("BigNum", "node")
+node := new_class(
+  parent = class_environment,
   properties = list(
     VALUE = new_property(
-      class_numeric, # TODO: make this a generic?
+      class_numeric,
       getter = function(self) self@VALUE,
       setter = NULL
     ),
-    state = new_property(
-      class_environment,
-      getter = function(self) self@state,
-      setter = NULL
-    ),
-    nxt = new_property(
-      class_any,
-      getter = function(self) {
-        self@state$nxt
-      },
-      setter = function(self, value) {
-        my_env <- self@state
-        my_env$nxt <- value
-
-        self
-      }
-    )
+    nxt = new_property(NULL | node_stub)
   ),
-  validator = function(self) {
-    if (!node_or_na(self@nxt)) {
-      "@nxt must be a `node` object or `NA`."
-    } else if (!is.numeric(self@VALUE) || length(self@VALUE) != 1) {
-      "@VALUE must be a `numeric` vector of length 1."
-    }
-  },
-  constructor = function(VALUE, nxt = NA) {
-    force(VALUE)
-    force(nxt)
-
+  constructor = function(VALUE, nxt = NULL) {
     new_object(
-      S7_object(),
+      new.env(parent = emptyenv()),
       VALUE = VALUE,
-      state = rlang::new_environment(list(nxt = nxt))
+      nxt = nxt
     )
   }
 )
 
-linked_list <- new_class(
-  "linked_list",
-  package = "BigNum",
+linked_list := new_class(
+  parent = class_environment,
   properties = list(
     head = new_property(
-      node,
-      getter = function(self) self@state$head,
-      setter = function(self, value) {
-        # TODO: kick up to error?
-        warning(
-          "@head should not be set manually. Did you mean to use `append_to_start()`?",
-          call. = FALSE
-        )
-
-        my_env <- self@state
-        my_env$head <- value
-
-        self
-      },
-      validator = node_or_na
+      NULL | node,
+      getter = function(self) self@head,
+      setter = NULL
     ),
     tail = new_property(
-      node,
-      getter = function(self) self@state$tail,
-      setter = function(self, value) {
-        warning("@tail should not be set manually", call. = FALSE)
-
-        my_env <- self@state
-        my_env$tail <- value
-
-        self
-      }
+      NULL | node,
+      getter = function(self) self@tail,
+      setter = NULL
     ),
     length = new_property(
       class_integer,
-      getter = function(self) self@state$length,
-      setter = function(self, value) {
-        warning("@length should not be set manually", call. = FALSE)
-        environ <- self@state
-        environ$length <- as.integer(value)
-
-        self
-      }
-    ),
-    state = new_property(class_environment, getter = function(self) self@state)
+      getter = function(self) self@length,
+      setter = NULL
+    )
   ),
-  validator = function(self) {
-    if (!node_or_na(self@head)) {
-      "@head must be a `node` object or `NA`."
-    } else if (!node_or_na(self@tail)) {
-      "@tail must be a `node` object or `NA`."
+  constructor = function(nodes = list()) {
+    if (!all(vapply(nodes, S7_inherits, logical(1), class = node))) {
+      stop("All elements must be <node> instances")
     }
-  },
-  constructor = function(num = NULL) {
-    force(num)
+    n <- length(nodes)
 
-    if (is.null(num) || num == "") {
-      return(new_object(
-        S7_object(),
-        state = rlang::new_environment(list(head = NA, tail = NA, length = 0))
-      ))
+    for (i in seq_len(n - 1)) {
+      nodes[[i]]@nxt <- nodes[[i + 1]]
     }
 
-    extract_digit_to_node <- function(pos) {
-      node(as.integer(substring(num, pos, pos)))
-    } # TODO: throw error if the char isn't numeric
-
-    len <- nchar(num)
-    nodes <- lapply(len:1, function(i) extract_digit_to_node(i))
-
-    if (len != 1) {
-      for (i in (len - 1):1) {
-        nodes[[i]]@nxt <- nodes[[i + 1]]
-      }
-    }
-
-    state <- rlang::new_environment(list(
-      head = nodes[[1]],
-      tail = nodes[[len]],
-      length = len
-    ))
-
-    new_object(S7_object(), state = state)
+    new_object(
+      new.env(parent = emptyenv()),
+      head = if (n) nodes[[1]] else NULL,
+      tail = if (n) nodes[[n]] else NULL,
+      length = n
+    )
   }
 )
 
-big_num <- new_class(
-  "big_num",
+big_num := new_class(
   parent = linked_list,
-  package = "BigNum",
-  constructor = function(num = "") {
-    if (!is.character(num)) {
-      warning("Use strings to make big_nums.", call. = FALSE)
-    }
-    new_object(linked_list(num))
+  constructor = function(num_str = "") {
+    new_object(
+      linked_list(
+        lapply(
+          as.integer(
+            rev(
+              strsplit(num_str, "")[[1L]]
+            )
+          ),
+          node
+        )
+      )
+    )
   }
 )
 
