@@ -1,6 +1,7 @@
 node_or_na_s4 <- function(value) is(value, "big_num_node_s4") || is.na(value)
 
-setClass("big_num_node_s4",
+setClass(
+  "big_num_node_s4",
   slots = c(
     VALUE = "numeric",
     state = "environment"
@@ -13,7 +14,11 @@ setClass("big_num_node_s4",
 node_s4 <- function(VALUE, nxt = NA) {
   stopifnot(node_or_na_s4(nxt), is.numeric(VALUE), length(VALUE) == 1)
 
-  new("big_num_node_s4", VALUE = VALUE, state = rlang::new_environment(list(nxt = nxt)))
+  new(
+    "big_num_node_s4",
+    VALUE = VALUE,
+    state = rlang::new_environment(list(nxt = nxt))
+  )
 }
 
 # TODO: copy this in S3 to approximate read only properties?
@@ -40,10 +45,15 @@ linked_list_s4 <- function(num = NULL) {
   force(num)
 
   if (is.null(num) || num == "") {
-    return(new("big_num_linked_list_s4", state = rlang::new_environment(list(head = NA, tail = NA, length = 0))))
+    return(new(
+      "big_num_linked_list_s4",
+      state = rlang::new_environment(list(head = NA, tail = NA, length = 0))
+    ))
   }
 
-  extract_digit_to_node <- function(pos) node_s4(as.integer(substring(num, pos, pos)))
+  extract_digit_to_node <- function(pos) {
+    node_s4(as.integer(substring(num, pos, pos)))
+  }
 
   len <- nchar(num)
   nodes <- lapply(len:1, function(i) extract_digit_to_node(i))

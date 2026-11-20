@@ -3,7 +3,10 @@ rmpfr_test_multiplication <- function(string_num_1, string_num_2) {
   num <- Rmpfr::mpfr(string_num_1, 200) * Rmpfr::mpfr(string_num_2, 200)
   string_num_solution <- as(num, "character")
 
-  expect_equal(big_num(string_num_1) * big_num(string_num_2), big_num(string_num_solution))
+  expect_equal(
+    big_num(string_num_1) * big_num(string_num_2),
+    big_num(string_num_solution)
+  )
 }
 
 

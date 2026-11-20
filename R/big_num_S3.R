@@ -1,4 +1,6 @@
-node_or_na_s3 <- function(value) inherits(value, "big_num_node_s3") || all(is.na(value))
+node_or_na_s3 <- function(value) {
+  inherits(value, "big_num_node_s3") || all(is.na(value))
+}
 
 #' @export
 node_s3 <- function(VALUE, nxt = NA) {
@@ -18,10 +20,17 @@ linked_list_s3 <- function(num = NULL) {
   force(num)
 
   if (is.null(num) || num == "") {
-    return(structure(list(state = rlang::new_environment(list(head = NA, tail = NA, length = 0))), class = "big_num_linked_list_s3"))
+    return(structure(
+      list(
+        state = rlang::new_environment(list(head = NA, tail = NA, length = 0))
+      ),
+      class = "big_num_linked_list_s3"
+    ))
   }
 
-  extract_digit_to_node <- function(pos) node_s3(as.integer(substring(num, pos, pos))) # TODO: throw error if the char isn't numeric
+  extract_digit_to_node <- function(pos) {
+    node_s3(as.integer(substring(num, pos, pos)))
+  } # TODO: throw error if the char isn't numeric
 
   len <- nchar(num)
   nodes <- lapply(len:1, function(i) extract_digit_to_node(i))
@@ -48,7 +57,10 @@ linked_list_s3 <- function(num = NULL) {
 
 #' @export
 big_num_s3 <- function(num = "") {
-  structure(linked_list_s3(num), class = c("big_num_s3", "big_num_linked_list_s3"))
+  structure(
+    linked_list_s3(num),
+    class = c("big_num_s3", "big_num_linked_list_s3")
+  )
 }
 
 #' @export
@@ -87,7 +99,7 @@ print.big_num_linked_list_s3 <- function(x, ...) {
     current <- current$state$nxt
   }
   cat("NA\n")
-  
+
   invisible(x)
 }
 

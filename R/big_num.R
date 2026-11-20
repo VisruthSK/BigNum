@@ -2,7 +2,8 @@
 node_or_na <- function(value) S7_inherits(value, node) || is.na(value) # predicate to check if `value` is a `node` or `NA`, pulled out to reduce duplication
 # TODO: change to use unions if possible? `NA | node`?
 
-node <- new_class("node",
+node <- new_class(
+  "node",
   package = "BigNum",
   properties = list(
     VALUE = new_property(
@@ -15,7 +16,8 @@ node <- new_class("node",
       getter = function(self) self@state,
       setter = NULL
     ),
-    nxt = new_property(class_any,
+    nxt = new_property(
+      class_any,
       getter = function(self) {
         self@state$nxt
       },
@@ -38,11 +40,16 @@ node <- new_class("node",
     force(VALUE)
     force(nxt)
 
-    new_object(S7_object(), VALUE = VALUE, state = rlang::new_environment(list(nxt = nxt)))
+    new_object(
+      S7_object(),
+      VALUE = VALUE,
+      state = rlang::new_environment(list(nxt = nxt))
+    )
   }
 )
 
-linked_list <- new_class("linked_list",
+linked_list <- new_class(
+  "linked_list",
   package = "BigNum",
   properties = list(
     head = new_property(
@@ -50,7 +57,10 @@ linked_list <- new_class("linked_list",
       getter = function(self) self@state$head,
       setter = function(self, value) {
         # TODO: kick up to error?
-        warning("@head should not be set manually. Did you mean to use `append_to_start()`?", call. = FALSE)
+        warning(
+          "@head should not be set manually. Did you mean to use `append_to_start()`?",
+          call. = FALSE
+        )
 
         my_env <- self@state
         my_env$head <- value
@@ -59,7 +69,8 @@ linked_list <- new_class("linked_list",
       },
       validator = node_or_na
     ),
-    tail = new_property(node,
+    tail = new_property(
+      node,
       getter = function(self) self@state$tail,
       setter = function(self, value) {
         warning("@tail should not be set manually", call. = FALSE)
@@ -70,13 +81,17 @@ linked_list <- new_class("linked_list",
         self
       }
     ),
-    length = new_property(class_integer, getter = function(self) self@state$length, setter = function(self, value) {
-      warning("@length should not be set manually", call. = FALSE)
-      environ <- self@state
-      environ$length <- as.integer(value)
+    length = new_property(
+      class_integer,
+      getter = function(self) self@state$length,
+      setter = function(self, value) {
+        warning("@length should not be set manually", call. = FALSE)
+        environ <- self@state
+        environ$length <- as.integer(value)
 
-      self
-    }),
+        self
+      }
+    ),
     state = new_property(class_environment, getter = function(self) self@state)
   ),
   validator = function(self) {
@@ -90,10 +105,15 @@ linked_list <- new_class("linked_list",
     force(num)
 
     if (is.null(num) || num == "") {
-      return(new_object(S7_object(), state = rlang::new_environment(list(head = NA, tail = NA, length = 0))))
+      return(new_object(
+        S7_object(),
+        state = rlang::new_environment(list(head = NA, tail = NA, length = 0))
+      ))
     }
 
-    extract_digit_to_node <- function(pos) node(as.integer(substring(num, pos, pos))) # TODO: throw error if the char isn't numeric
+    extract_digit_to_node <- function(pos) {
+      node(as.integer(substring(num, pos, pos)))
+    } # TODO: throw error if the char isn't numeric
 
     len <- nchar(num)
     nodes <- lapply(len:1, function(i) extract_digit_to_node(i))
@@ -114,11 +134,14 @@ linked_list <- new_class("linked_list",
   }
 )
 
-big_num <- new_class("big_num",
+big_num <- new_class(
+  "big_num",
   parent = linked_list,
   package = "BigNum",
   constructor = function(num = "") {
-    if (!is.character(num)) warning("Use strings to make big_nums.", call. = FALSE)
+    if (!is.character(num)) {
+      warning("Use strings to make big_nums.", call. = FALSE)
+    }
     new_object(linked_list(num))
   }
 )
