@@ -11,5 +11,10 @@ A toy package designed to showcase and serve as a reference/tutorial for S7 deve
 \author{
 \strong{Maintainer}: Visruth Srimath Kandali \email{public@visruth.com} (\href{https://orcid.org/0009-0005-9097-0688}{ORCID})
 
+Authors:
+\itemize{
+  \item Visruth Srimath Kandali \email{public@visruth.com} (\href{https://orcid.org/0009-0005-9097-0688}{ORCID})
+}
+
 }
 \keyword{internal}
