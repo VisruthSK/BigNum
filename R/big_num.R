@@ -47,8 +47,10 @@ linked_list := new_class(
     }
     n <- length(nodes)
 
-    for (i in seq_len(n - 1)) {
-      nodes[[i]]@nxt <- nodes[[i + 1]]
+    if (n > 1) {
+      for (i in seq_len(n - 1)) {
+        nodes[[i]]@nxt <- nodes[[i + 1]]
+      }
     }
 
     new_object(
@@ -68,7 +70,7 @@ big_num := new_class(
         lapply(
           as.integer(
             rev(
-              strsplit(num_str, "")[[1L]]
+              strsplit(as.character(num_str), "")[[1L]]
             )
           ),
           node
@@ -78,48 +80,39 @@ big_num := new_class(
   }
 )
 
-is_even <- new_generic("is_even", c("x"))
+is_even := new_generic("x")
 method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
 
-# TODO: rewrite to be external generic? `base::append()`
-bn_append <- new_generic("bn_append", c("x", "ll"))
-method(bn_append, list(node, linked_list)) <- function(x, ll) {
-  suppressWarnings({
-    if (!S7_inherits(ll@head)) {
-      ll@head <- x
-      ll@tail <- x
-    } else {
-      ll@tail@nxt <- x
-      ll@tail <- x
-    }
-    ll@length <- ll@length + 1
-  })
+.insert_node <- function(x, values, at_start) {
+  if (!is.null(values@nxt) || identical(values, x@tail)) {
+    stop("Node is already linked")
+  }
 
-  invisible(ll)
-}
-method(bn_append, list(class_numeric, linked_list)) <- function(x, ll) {
-  stopifnot(x < 10 && x >= 0)
-  bn_append(node(x), ll)
+  if (is.null(x@head)) {
+    attr(x, "head") <- values
+    attr(x, "tail") <- values
+  } else if (at_start) {
+    values@nxt <- x@head
+    attr(x, "head") <- values
+  } else {
+    tail <- x@tail
+    tail@nxt <- values
+    attr(x, "tail") <- values
+  }
+
+  attr(x, "length") <- x@length + 1L
+
+  invisible(x)
 }
 
-append_to_start <- new_generic("append_to_start", c("x", "ll"))
-method(append_to_start, list(node, linked_list)) <- function(x, ll) {
-  suppressWarnings({
-    if (!S7_inherits(ll@head)) {
-      ll@head <- x
-      ll@tail <- x
-    } else {
-      x@nxt <- ll@head
-      ll@head <- x
-    }
-    ll@length <- ll@length + 1
-  })
-
-  invisible(ll)
+append := new_generic(c("x", "values"))
+method(append, list(linked_list, node)) <- function(x, values, ...) {
+  .insert_node(x, values, FALSE)
 }
-method(append_to_start, list(class_numeric, linked_list)) <- function(x, ll) {
-  stopifnot(x < 10 && x >= 0)
-  append_to_start(node(x), ll)
+
+append_to_start := new_generic(c("x", "values"))
+method(append_to_start, list(linked_list, node)) <- function(x, values, ...) {
+  .insert_node(x, values, TRUE)
 }
 
 method(print, linked_list) <- function(x, ...) {
@@ -158,10 +151,11 @@ add_helper <- function(node1, node2, carry, sum) {
   digit <- node1@VALUE + node2@VALUE + carry
   carry <- digit %/% 10
   digit <- digit %% 10
-  bn_append(digit, sum)
+  append(sum, node(as.numeric(digit)))
 
   carry
 }
+
 method(`+`, list(big_num, big_num)) <- function(e1, e2) {
   sum <- big_num()
   node1 <- e1@head
@@ -182,7 +176,7 @@ method(`+`, list(big_num, big_num)) <- function(e1, e2) {
     node2 <- node2@nxt
   }
   if (carry > 0) {
-    bn_append(carry, sum)
+    append(sum, node(as.integer(carry)))
   }
 
   sum
@@ -194,59 +188,67 @@ method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) + e2
 }
 
-# function to remove tail zeros from a `big_num`
 remove_leading_zeros <- function(bn) {
-  if (bn@length <= 1) {
+  if (is.null(bn@head)) {
+    append(bn, node(0))
     return(bn)
   }
 
   current <- bn@head
-  last_nonzero <- NA
-  final_length <- 0
+  last_nonzero <- NULL
+  last_index <- 0
+  index <- 0
 
-  while (S7_inherits(current)) {
+  while (!is.null(current)) {
+    index <- index + 1
+
     if (current@VALUE != 0) {
       last_nonzero <- current
-      final_length <- bn@length
-    } else {
-      final_length <- final_length - 1
+      last_index <- index
     }
+
     current <- current@nxt
   }
 
-  if (!S7_inherits(last_nonzero)) {
-    suppressWarnings({
-      bn@head@nxt <- NA
-      bn@tail <- bn@head
-      bn@length <- 1
-    })
+  if (is.null(last_nonzero)) {
+    first <- bn@head
+    first@nxt <- NULL
 
-    return(invisible(bn))
+    attr(bn, "tail") <- first
+    attr(bn, "length") <- 1
+  } else {
+    last_nonzero@nxt <- NULL
+
+    attr(bn, "tail") <- last_nonzero
+    attr(bn, "length") <- last_index
   }
 
-  last_nonzero@nxt <- NA
-  suppressWarnings({
-    bn@tail <- last_nonzero
-    bn@length <- final_length
-  })
-
-  invisible(bn)
+  bn
 }
 
 method(`*`, list(big_num, big_num)) <- function(e1, e2) {
-  product <- big_num(0)
+  product <- big_num("0")
   node2 <- e2@head
   shift2 <- 0
-  while (S7_inherits(node2)) {
+
+  while (!is.null(node2)) {
     node1 <- e1@head
     shift1 <- 0
-    while (S7_inherits(node1)) {
-      temp <- big_num(node1@VALUE * node2@VALUE)
-      replicate(shift1 + shift2, append_to_start(0, temp))
+
+    while (!is.null(node1)) {
+      digit_product <- node1@VALUE * node2@VALUE
+      temp <- big_num(as.character(digit_product))
+
+      for (i in seq_len(shift1 + shift2)) {
+        append_to_start(temp, node(0))
+      }
+
       product <- product + temp
+
       node1 <- node1@nxt
       shift1 <- shift1 + 1
     }
+
     node2 <- node2@nxt
     shift2 <- shift2 + 1
   }
@@ -261,19 +263,27 @@ method(`*`, list(class_numeric, big_num)) <- function(e1, e2) {
 }
 
 method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
-  if (e2 == 0) {
-    return(big_num(1))
-  } else if (e2 == 1) {
-    return(e1)
-  } else if (e2 == 2) {
-    return(e1 * e1)
-  } else {
-    if (e2 %% 2 == 1) {
-      return((e1^2)^(e2 %/% 2))
-    } else {
-      return((e1^2)^(e2 %/% 2) * e1)
+  if (e2 < 0 || is.na(e2) || !is.finite(e2)) {
+    stop("Exponent must be a non-negative integer")
+  }
+
+  result <- big_num("1")
+  base <- e1
+  n <- e2
+
+  while (n > 0) {
+    if (n %% 2 == 1) {
+      result <- result * base
+    }
+
+    n <- n %/% 2
+
+    if (n > 0) {
+      base <- base * base
     }
   }
+
+  result
 }
 
 method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
@@ -292,10 +302,9 @@ method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   }
   TRUE
 }
-
 method(`==`, list(big_num, class_numeric)) <- function(e1, e2) {
-  e1 == big_num(e2)
+  e1 == big_num(as.character(e2))
 }
 method(`==`, list(class_numeric, big_num)) <- function(e1, e2) {
-  big_num(e1) == e2
+  big_num(as.character(e1)) == e2
 }

@@ -60,5 +60,5 @@ test_that("exponentiation works", {
   expect_equal(big_num(2)^1, big_num(2))
   expect_equal(big_num(2)^2, big_num(4))
 
-  expect_equal(big_num(11)^20, big_num("61159090448414546291"))
+  expect_equal(big_num(11)^20, big_num("672749994932560009201"))
 })
