@@ -302,6 +302,10 @@ method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   }
   TRUE
 }
+method(`==`, list(big_num, big_num)) <- function(e1, e2) {
+  super(.remove_leading_zeros(e1), linked_list) ==
+    super(.remove_leading_zeros(e2), linked_list)
+}
 method(`==`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 == big_num(as.character(e2))
 }

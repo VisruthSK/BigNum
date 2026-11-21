@@ -9,7 +9,6 @@ rmpfr_test_multiplication <- function(string_num_1, string_num_2) {
   )
 }
 
-
 test_that("multiplication commutes", {
   expect_equal((big_num(2) * big_num(2)), big_num(4))
 
@@ -43,7 +42,6 @@ test_that("multiplication zero", {
   rmpfr_test_multiplication(string_3, "0")
 })
 
-
 test_that("multiplication one", {
   string_1 <- "321474836474"
   string_2 <- "46548999646551237776"
@@ -54,11 +52,21 @@ test_that("multiplication one", {
   rmpfr_test_multiplication(string_3, "1")
 })
 
-
 test_that("exponentiation works", {
   expect_equal(big_num(2)^0, big_num(1))
   expect_equal(big_num(2)^1, big_num(2))
   expect_equal(big_num(2)^2, big_num(4))
 
   expect_equal(big_num(11)^20, big_num("672749994932560009201"))
+})
+
+test_that("big_num equality compares numeric values", {
+  expect_true(big_num("123") == big_num("123"))
+  expect_true(big_num("00123") == big_num("123"))
+  expect_true(big_num("123") == big_num("00123"))
+  expect_true(big_num("000") == big_num("0"))
+
+  expect_false(big_num("123") == big_num("124"))
+  expect_false(big_num("123") == big_num("1230"))
+  expect_false(big_num("0") == big_num("1"))
 })
