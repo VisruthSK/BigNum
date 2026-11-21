@@ -1,17 +1,19 @@
-same_type <- function(x, y) {
-  identical(S7_class(x), S7_class(y))
+# define a helper function for properties that cannot be modified
+readonly <- function(class) {
+  new_property(
+    class = class,
+    getter = function(self, name) prop(self, name)
+  )
 }
 
+# define a stub for the `node` class since a `node`
+# contains a reference (`@nxt`) to another `node`
 node_stub <- new_external_class("BigNum", "node")
 node := new_class(
   parent = class_environment,
   properties = list(
-    VALUE = new_property(
-      class_numeric,
-      getter = function(self) self@VALUE,
-      setter = NULL
-    ),
-    nxt = new_property(NULL | node_stub)
+    VALUE = readonly(class_numeric),
+    nxt = NULL | node_stub
   ),
   constructor = function(VALUE, nxt = NULL) {
     new_object(
@@ -23,23 +25,14 @@ node := new_class(
 )
 
 linked_list := new_class(
+  # S7 1.0.0 added experimental support for
+  # environment semantics, which offer a very
+  # nice way to have a mutable struct.
   parent = class_environment,
   properties = list(
-    head = new_property(
-      NULL | node,
-      getter = function(self) self@head,
-      setter = NULL
-    ),
-    tail = new_property(
-      NULL | node,
-      getter = function(self) self@tail,
-      setter = NULL
-    ),
-    length = new_property(
-      class_integer,
-      getter = function(self) self@length,
-      setter = NULL
-    )
+    head = readonly(NULL | node),
+    tail = readonly(NULL | node),
+    length = readonly(class_integer)
   ),
   constructor = function(nodes = list()) {
     if (!all(vapply(nodes, S7_inherits, logical(1), class = node))) {
@@ -63,8 +56,12 @@ linked_list := new_class(
 )
 
 big_num := new_class(
+  # a `big_num` object is also a `linked_list` object
+  # which means it has all the same properties and methods
   parent = linked_list,
   constructor = function(num_str = "") {
+    # store a number backwards internally for maths:
+    # 1234 is stored as "4" -> "3" -> "2" -> "1" -> NA
     new_object(
       linked_list(
         lapply(
@@ -80,6 +77,7 @@ big_num := new_class(
   }
 )
 
+# define a generic, and a method for that generic on `big_num` objects
 is_even := new_generic("x")
 method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
 
@@ -156,6 +154,8 @@ add_helper <- function(node1, node2, carry, sum) {
   carry
 }
 
+# S7 supports multiple dispatch, so here we define addition
+# for a, b when both are `big_num` objects, or only one is.
 method(`+`, list(big_num, big_num)) <- function(e1, e2) {
   sum <- big_num()
   node1 <- e1@head
@@ -188,7 +188,7 @@ method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) + e2
 }
 
-remove_leading_zeros <- function(bn) {
+.remove_leading_zeros <- function(bn) {
   if (is.null(bn@head)) {
     append(bn, node(0))
     return(bn)
@@ -196,11 +196,11 @@ remove_leading_zeros <- function(bn) {
 
   current <- bn@head
   last_nonzero <- NULL
-  last_index <- 0
-  index <- 0
+  last_index <- 0L
+  index <- 0L
 
   while (!is.null(current)) {
-    index <- index + 1
+    index <- index + 1L
 
     if (current@VALUE != 0) {
       last_nonzero <- current
@@ -215,7 +215,7 @@ remove_leading_zeros <- function(bn) {
     first@nxt <- NULL
 
     attr(bn, "tail") <- first
-    attr(bn, "length") <- 1
+    attr(bn, "length") <- 1L
   } else {
     last_nonzero@nxt <- NULL
 
@@ -253,7 +253,7 @@ method(`*`, list(big_num, big_num)) <- function(e1, e2) {
     shift2 <- shift2 + 1
   }
 
-  remove_leading_zeros(product)
+  .remove_leading_zeros(product)
 }
 method(`*`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 * big_num(e2)

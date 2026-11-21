@@ -9,8 +9,8 @@ vignette: >
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
+    collapse = TRUE,
+    comment = "#>"
 )
 ```
 
@@ -21,7 +21,6 @@ library(S7)
 This vignette is written to get you acquainted with `{BigNum}` and S7, and assumes no knowledge of the latter; however, this does assume basic general knowledge of objected oriented principles and terminology. I highly recommend that you use this package in conjunction with the [S7 website](https://rconsortium.github.io/S7/), but ideally you should be able to gain a basic understanding of S7 solely through this vignette. If you are completely new to S7, start with this vignette, check the website as you go (especially if I don't explain something to your liking), and once you've read a section or understood a concept, check the source code of `{BigNum}` to see some (ideally less trivial) examples.
 
 It may be paced too slowly, in which case feel free to skip portions you find trivial. This package and the S7 website tend to have more fleshed out examples and more details.
-<!-- We will primarily be using examples from the package. -->
 
 ## Classes, Properties, & Objects
 
@@ -30,10 +29,10 @@ It may be paced too slowly, in which case feel free to skip portions you find tr
 We will start with the example from the readme--`Shape`s. We will be constructing a type hierarchy with squares, rectangles, circles, and shapes, with the typical relationships (e.g. all squares are rectangles, all rectangles and circles are shapes). Let us start with `Shape`s though.
 
 ```{r}
-Shape <- new_class("Shape")
+Shape := new_class()
 ```
 
-This defines a `Shape` class which inherits from the base S7 object and doesn't have any data associated with it. The first argument to `new_class()` as specified in the docs (the S7 website) should be the name of the class as a string. Note that we have only defined a *constructor* and don't have an instance of it.
+This defines a `Shape` class which inherits from the base S7 object and doesn't have any data associated with it. The `:=` (walrus operator) creates the class with the name "Shape" in one command, so you don't have to write `Shape <- new_class(name = "Shape")`. Note that we have only defined a *constructor* and don't have an instance of it.
 
 ```{r}
 Shape # class
@@ -45,10 +44,10 @@ To create *a* `Shape`, we can call the constructor. Since we haven't given any d
 Shape() # object
 ```
 
-Let us add some data. Let's say that all `Shape`s should store their name, as a character vector.
+Let us add some data. Let's say that all `Shape`s should store their name as a character vector.
 
 ```{r}
-Shape <- new_class("Shape", properties = list(name = class_character))
+Shape := new_class(properties = list(name = class_character))
 ```
 
 ::: {.callout-note collapse="true"}
@@ -74,7 +73,7 @@ It is important to define the correct property type as R will now assert that th
 Shape(10)
 ```
 
-Here we attempt to make a `Shape` with a `@name`[^1] of `10`, but since `10` isn't a character, we cannot do this. Note that there is no automatic type coercion. By default, we pass properties to the constructor by position, and the order is determined by the order in `properties`. We can observe properties of the class `Shape` itself the same way we look at properties of S7 objects.
+Here we attempt to make a `Shape` with a `@name`[^1] of `10`, but since `10` isn't a character, we cannot do this. Note that there is no automatic type coercion. By default, we pass properties to the constructor by position, and by default the order is determined by the order in `properties`. We can observe properties of the class `Shape` itself the same way we look at properties of S7 objects.
 
 [^1]: I use the `@` symbol (`@property`) to signify that I am talking about a property of some object, just like how you would access it. This is another style thing, and is not standard.
 
@@ -85,11 +84,11 @@ Shape@constructor
 That is the default constructor--we'll learn how to write a custom constructor later. Let's look at what happens when we add another property.
 
 ```{r}
-Shape <- new_class("Shape",
-  properties = list(
-    name = class_character,
-    sides = class_integer
-  )
+Shape := new_class(
+    properties = list(
+        name = class_character,
+        sides = class_integer
+    )
 )
 ```
 
@@ -99,33 +98,31 @@ Note that this class definition is no longer inlined. In general, I think that (
 
 ```{r}
 #| eval: false
-example <- new_class("example",
-  parent = parent_class,
-  package = "my_package",
-  properties = list(
-    prop1 = new_property(class_any,
-      getter = function(self) {
-        self@prop1
-      },
-      setter = function(self, value) {
-        self
-      }
+example := new_class(
+    parent = parent_class,
+    package = "my_package",
+    properties = list(
+        prop1 = new_property(class_any,
+            getter = function(self) {
+                self@prop1
+            },
+            setter = function(self, value) {
+                self
+            }
+        ),
+        prop2 = class_any,
+        # ...
     ),
-    prop2 = class_any,
-    # ...
-  ),
-  constructor = function(prop1, prop2 = NULL) {
-    force(prop1)
-    force(prop2)
-    new_object(parent_class, prop1 = prop1, prop2 = prop2)
-  },
-  validator = function(self) {
-    if (self@prop2 == TRUE) {
-      "@prop2 must be FALSE"
-    } else if (self@prop1 != 42) {
-      "@prop1 must be 42"
+    constructor = function(prop1, prop2 = NULL) {
+        new_object(parent_class, prop1 = prop1, prop2 = prop2)
+    },
+    validator = function(self) {
+        if (self@prop2) {
+            "@prop2 must be FALSE"
+        } else if (self@prop1 != 42) {
+            "@prop1 must be 42"
+        }
     }
-  }
 )
 ```
 :::
@@ -145,17 +142,17 @@ Shape@constructor
 Let's add some more `Shape`s, starting with a `Circle`. All circles are shapes, so we wish to reflect that in our class definition. We can do that using inheritance, which in S7 is expressed as follows:
 
 ```{r}
-Circle <- new_class("Circle",
-  parent = Shape,
-  properties = list(
-    radius = class_numeric
-  )
+Circle := new_class(
+    parent = Shape,
+    properties = list(
+        radius = class_numeric
+    )
 )
 ```
 
 `new_class()` has a `parent` argument which defaults to `S7_object` which is the parent class of all S7 objects (think `Object` in Java.) We can see this using `class()`[^2]
 
-[^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so methods for S3 OOP will still work on S7 (e.g. `{sloop}` and `class()`). `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `"S7_object"` is in `class(your_object)`).
+[^2]: S7 is [built atop of S3](https://rconsortium.github.io/S7/articles/compatibility.html), so methods for S3 OOP will still work on S7 (e.g. `{sloop}` and `class()`). `S7` sometimes exposes some functions which you should use instead, though. Check if there is a `S7` function before defaulting to a S3 one. (e.g. use `S7_class()` instead of checking if `"S7_object"` is in `class(your_object)`). S7 also interops with S4.
 
 ```{r}
 class(Shape())
@@ -170,10 +167,10 @@ Think about if the following would return an error, and why. (Hint: check the cl
 ```{r}
 #| eval: false
 Shape <- new_class("Shape",
-  properties = list(
-    name = class_character,
-    sides = class_integer
-  )
+    properties = list(
+        name = class_character,
+        sides = class_integer
+    )
 )
 
 Circle("circle", 1, 5)
@@ -211,9 +208,9 @@ This is obviously not desirable. We can restrict this behavior by creating a cus
 
 ```{r}
 positive_numeric <- new_property(class_numeric,
-  validator = function(value) {
-    if (value <= 0) "must be greater than 0"
-  }
+    validator = function(value) {
+        if (value <= 0) "must be greater than 0"
+    }
 )
 ```
 
@@ -221,21 +218,21 @@ positive_numeric <- new_property(class_numeric,
 
 ```{r}
 Shape <- new_class("Shape",
-  properties = list(
-    name = class_character,
-    sides = new_property(class_integer,
-      validator = function(value) {
-        if (value <= 0) "must be greater than 0"
-      }
+    properties = list(
+        name = class_character,
+        sides = new_property(class_integer,
+            validator = function(value) {
+                if (value <= 0) "must be greater than 0"
+            }
+        )
     )
-  )
 )
 
 Circle <- new_class("Circle",
-  parent = Shape,
-  properties = list(
-    radius = positive_numeric
-  )
+    parent = Shape,
+    properties = list(
+        radius = positive_numeric
+    )
 )
 ```
 
@@ -258,18 +255,18 @@ Let us further explore properties.
 
 ```{r}
 positive_numeric <- new_property(class_numeric,
-  validator = function(value) {
-    if (value <= 0) "must be greater than 0"
-  }
+    validator = function(value) {
+        if (value <= 0) "must be greater than 0"
+    }
 )
 
 Shape <- new_class("Shape", abstract = TRUE)
 
 Circle <- new_class("Circle",
-  parent = Shape,
-  properties = list(
-    radius = positive_numeric
-  )
+    parent = Shape,
+    properties = list(
+        radius = positive_numeric
+    )
 )
 ```
 
@@ -285,11 +282,11 @@ Let's look at some more interesting things we can do with properties.
 
 ```{r}
 Circle <- new_class("Circle",
-  parent = Shape,
-  properties = list(
-    radius = positive_numeric,
-    area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
-  )
+    parent = Shape,
+    properties = list(
+        radius = positive_numeric,
+        area = new_property(class_numeric, getter = function(self) pi * self@radius^2, setter = NULL)
+    )
 )
 ```
 
@@ -310,12 +307,12 @@ Circles are getting boring; let's add Rectangles and Squares.
 
 ```{r}
 Rect <- new_class("Rect",
-  parent = Shape,
-  properties = list(
-    width = positive_numeric,
-    height = positive_numeric,
-    area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)
-  )
+    parent = Shape,
+    properties = list(
+        width = positive_numeric,
+        height = positive_numeric,
+        area = new_property(class_numeric, getter = function(self) self@width * self@height, setter = NULL)
+    )
 )
 ```
 
@@ -330,11 +327,11 @@ And now we can easily extend our shapes to further include `Square`s.
 
 ```{r}
 Square <- new_class("Square",
-  parent = Rect,
-  constructor = function(side) {
-    force(side)
-    new_object(Rect, width = side, height = side)
-  }
+    parent = Rect,
+    constructor = function(side) {
+        force(side)
+        new_object(Rect, width = side, height = side)
+    }
 )
 ```
 
@@ -370,14 +367,14 @@ We could've overwritten `Rect`'s `@area` to exploit our knowledge of `Square`s:
 
 ```{r}
 Square <- new_class("Square",
-  parent = Rect,
-  properties = list(
-    area = new_property(class_numeric, getter = function(self) self@width^2, setter = NULL)
-  ),
-  constructor = function(side) {
-    force(side)
-    new_object(Rect, width = side, height = side)
-  }
+    parent = Rect,
+    properties = list(
+        area = new_property(class_numeric, getter = function(self) self@width^2, setter = NULL)
+    ),
+    constructor = function(side) {
+        force(side)
+        new_object(Rect, width = side, height = side)
+    }
 )
 
 Square(5)
@@ -401,52 +398,52 @@ We have objects, and we can give our objects some data--but we can't do anything
 
 ```{r}
 positive_numeric <- new_property(class_numeric,
-  validator = function(value) {
-    if (value <= 0) "must be greater than 0"
-  }
+    validator = function(value) {
+        if (value <= 0) "must be greater than 0"
+    }
 )
 
 Shape <- new_class("Shape",
-  properties = list(
-    sides = new_property(class_integer,
-      validator = function(value) {
-        if (value <= 0) "must be greater than 0"
-      }
-    )
-  ),
-  abstract = TRUE
+    properties = list(
+        sides = new_property(class_integer,
+            validator = function(value) {
+                if (value <= 0) "must be greater than 0"
+            }
+        )
+    ),
+    abstract = TRUE
 )
 
 Circle <- new_class("Circle",
-  parent = Shape,
-  properties = list(
-    radius = positive_numeric
-  ),
-  constructor = function(radius) {
-    force(radius)
-    new_object(S7_object(), radius = radius, sides = 1L)
-  }
+    parent = Shape,
+    properties = list(
+        radius = positive_numeric
+    ),
+    constructor = function(radius) {
+        force(radius)
+        new_object(S7_object(), radius = radius, sides = 1L)
+    }
 )
 
 Rect <- new_class("Rect",
-  parent = Shape,
-  properties = list(
-    width = positive_numeric,
-    height = positive_numeric
-  ),
-  constructor = function(width, height) {
-    force(width)
-    force(height)
-    new_object(S7_object(), width = width, height = height, sides = 4L)
-  }
+    parent = Shape,
+    properties = list(
+        width = positive_numeric,
+        height = positive_numeric
+    ),
+    constructor = function(width, height) {
+        force(width)
+        force(height)
+        new_object(S7_object(), width = width, height = height, sides = 4L)
+    }
 )
 
 Square <- new_class("Square",
-  parent = Rect,
-  constructor = function(side) {
-    force(side)
-    new_object(Rect, width = side, height = side, sides = 4L)
-  }
+    parent = Rect,
+    constructor = function(side) {
+        force(side)
+        new_object(Rect, width = side, height = side, sides = 4L)
+    }
 )
 ```
 
@@ -455,7 +452,7 @@ Let's review what we've changed. First, `Shape`s have recovered `@sides`, with a
 ```{r}
 Area <- new_generic("Area", "shape")
 method(Area, Circle) <- function(shape) {
-  pi * shape@radius^2
+    pi * shape@radius^2
 }
 ```
 
@@ -466,7 +463,7 @@ After that comes a method implementation. `method()` is very flexible, and allow
 ```{r}
 #| error: true
 method(Area, Circle) <- function(x) {
-  pi * x@radius^2
+    pi * x@radius^2
 }
 ```
 
@@ -487,14 +484,14 @@ With our type hierarchy, we could define a "default" area by creating a method f
 
 ```{r}
 method(Area, Shape) <- function(shape) {
-  "No method defined for this Shape!"
+    "No method defined for this Shape!"
 }
 
 Area(Square(5))
 method_explain(Area, Square)
 
 method(Area, Rect) <- function(shape) {
-  shape@height * shape@width
+    shape@height * shape@width
 }
 
 Area(Square(5))
@@ -506,7 +503,7 @@ Similarly, we could get the number of sides of any `Shape` with minimal effort, 
 ```{r}
 number_of_sides <- new_generic("number_of_sides", "x")
 method(number_of_sides, Shape) <- function(x) {
-  x@sides
+    x@sides
 }
 
 number_of_sides(Square(5))
@@ -520,13 +517,13 @@ Let's say that we want to be able to get the perimeter of our `Shape`s--but we d
 
 ```{r}
 method(length, Circle) <- function(x) {
-  2 * pi * x@radius
+    2 * pi * x@radius
 }
 
 length(Circle(10))
 
 method(length, Rect) <- function(x) {
-  2 * (x@height + x@width)
+    2 * (x@height + x@width)
 }
 
 length(Square(5))
@@ -537,7 +534,7 @@ If you need to define behavior for a generic defined in another package, you can
 ```{r}
 median_Shapes <- new_external_generic("stats", "median", "x")
 method(median_Shapes, Shape) <- function(x) {
-  "You can't take the median of a Shape!"
+    "You can't take the median of a Shape!"
 }
 
 median(Rect(4, 2))
@@ -549,7 +546,7 @@ Since S7 is built atop of S3, you could do something like this:
 
 ```{r}
 median.Shape <- function(x) {
-  "Yay S3"
+    "Yay S3"
 }
 median(Rect(4, 2))
 ```
