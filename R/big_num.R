@@ -1,4 +1,8 @@
-# define a helper function for properties that cannot be modified
+#' Read-only S7 property
+#'
+#' @param class An S7 class specification.
+#' @returns An S7 property definition.
+#' @noRd
 readonly <- function(class) {
   new_property(
     class = class,
@@ -9,6 +13,18 @@ readonly <- function(class) {
 # define a stub for the `node` class since a `node`
 # contains a reference (`@nxt`) to another `node`
 node_stub <- new_external_class("BigNum", "node")
+#' Linked-list node
+#'
+#' An environment-backed node with a read-only numeric value and a mutable
+#' link to the next node.
+#'
+#' @param VALUE Numeric value to store (read-only).
+#' @param nxt Next `node`, or `NULL`.
+#' @returns A `node` object.
+#' @examples
+#' x <- node(3, node(2))
+#' x@nxt@VALUE
+#' @export
 node := new_class(
   parent = class_environment,
   properties = list(
@@ -24,6 +40,19 @@ node := new_class(
   }
 )
 
+#' Mutable linked list
+#'
+#' An environment-backed S7 linked list data structure.
+#'
+#' @param nodes A list of `node` objects in traversal order.
+#' @prop head First node, or `NULL` (read-only).
+#' @prop tail Last node, or `NULL` (read-only).
+#' @prop length Number of nodes (read-only).
+#' @returns A `linked_list` object.
+#' @examples
+#' x <- linked_list(list(node(1), node(2)))
+#' print(x)
+#' @export
 linked_list := new_class(
   # S7 1.0.0 added experimental support for
   # environment semantics, which offer a very
@@ -55,6 +84,17 @@ linked_list := new_class(
   }
 )
 
+#' Arbitrary-precision non-negative integer
+#'
+#' A `linked_list` subclass with the least significant digit first:
+#' `123` is stored as `3 -> 2 -> 1`.
+#'
+#' @param num_str Decimal digits as a string or numeric value.
+#' @returns A `big_num` object.
+#' @examples
+#' x <- big_num("1234")
+#' print(x)
+#' @export
 big_num := new_class(
   # a `big_num` object is also a `linked_list` object
   # which means it has all the same properties and methods
@@ -77,10 +117,30 @@ big_num := new_class(
   }
 )
 
-# define a generic, and a method for that generic on `big_num` objects
+#' Test whether a big number is even
+#'
+#' `is_even()` is an S7 generic to check if a number is even.
+#'
+#' @param x An object to test.
+#' @param ... Arguments passed to methods.
+#' @returns `TRUE` if even; otherwise `FALSE`.
+#' @examples
+#' is_even(big_num("102"))
+#' is_even(big_num("103"))
+#' @export
 is_even := new_generic("x")
+#' @rdname is_even
 method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
+#' @rdname is_even
+method(is_even, class_numeric) <- function(x) x %% 2 == 0
 
+#' Insert a node in place
+#'
+#' @param x A `linked_list` to modify.
+#' @param values A `node` to insert.
+#' @param at_start Whether to prepend rather than append.
+#' @returns `x`, invisibly.
+#' @noRd
 .insert_node <- function(x, values, at_start) {
   if (!is.null(values@nxt) || identical(values, x@tail)) {
     stop("Node is already linked")
@@ -103,16 +163,58 @@ method(is_even, big_num) <- function(x) x@head@VALUE %% 2 == 0
   invisible(x)
 }
 
+#' Append a node
+#'
+#' `append()` is an S7 generic that dispatches on both arguments. Its
+#' `(linked_list, node)` method changes the list in place.
+#'
+#' @param x A `linked_list` to modify.
+#' @param values A `node` to append.
+#' @param ... Arguments passed to methods.
+#' @returns `x`, invisibly.
+#' @examples
+#' x <- linked_list(list(node(1)))
+#' append(x, node(2))
+#' print(x)
+#' @export
 append := new_generic(c("x", "values"))
+#' @rdname append
 method(append, list(linked_list, node)) <- function(x, values, ...) {
   .insert_node(x, values, FALSE)
 }
 
-append_to_start := new_generic(c("x", "values"))
-method(append_to_start, list(linked_list, node)) <- function(x, values, ...) {
+#' Prepend a node
+#'
+#' `append()` is an S7 generic that dispatches on both arguments. Its
+#' `(linked_list, node)` method changes the list in place.
+#'
+#' @param x A `linked_list` to modify.
+#' @param values A `node` to prepend.
+#' @param ... Arguments passed to methods.
+#' @returns `x`, invisibly.
+#' @examples
+#' x <- linked_list(list(node(2)))
+#' prepend(x, node(1))
+#' print(x)
+#' @export
+prepend := new_generic(c("x", "values"))
+#' @rdname prepend
+method(prepend, list(linked_list, node)) <- function(x, values, ...) {
   .insert_node(x, values, TRUE)
 }
 
+#' Print linked lists and big numbers
+#'
+#' The [base::print()] methods display linked lists in traversal order,
+#' ending in `NA`, and `big_num` objects in decimal order.
+#'
+#' @param x A `linked_list` or `big_num`.
+#' @param ... Unused.
+#' @returns `x`, invisibly.
+#' @rdname big_num-print
+#' @examples
+#' print(linked_list(list(node(1), node(2))))
+#' print(big_num("1234"))
 method(print, linked_list) <- function(x, ...) {
   current <- x@head
   while (S7_inherits(current)) {
@@ -123,6 +225,7 @@ method(print, linked_list) <- function(x, ...) {
 
   invisible(x)
 }
+#' @rdname big_num-print
 method(print, big_num) <- function(x, ...) {
   len <- x@length
 
@@ -145,6 +248,13 @@ method(print, big_num) <- function(x, ...) {
   invisible(x)
 }
 
+#' Add one digit column
+#'
+#' @param node1,node2 Nodes containing digits to add.
+#' @param carry Incoming carry.
+#' @param sum A `big_num` accumulator, modified in place.
+#' @returns Outgoing carry.
+#' @noRd
 add_helper <- function(node1, node2, carry, sum) {
   digit <- node1@VALUE + node2@VALUE + carry
   carry <- digit %/% 10
@@ -156,6 +266,18 @@ add_helper <- function(node1, node2, carry, sum) {
 
 # S7 supports multiple dispatch, so here we define addition
 # for a, b when both are `big_num` objects, or only one is.
+#' Add big numbers
+#'
+#' [base::Arithmetic] `+` methods support two `big_num` objects or one
+#' `big_num` and one numeric operand, in either order.
+#'
+#' @param e1,e2 Two `big_num` objects, or a `big_num` and a numeric value.
+#' @returns A new `big_num` containing the sum.
+#' @rdname big_num-addition
+#' @examples
+#' big_num("999") + big_num("1")
+#' big_num("100") + 23
+#' 23 + big_num("100")
 method(`+`, list(big_num, big_num)) <- function(e1, e2) {
   sum <- big_num()
   node1 <- e1@head
@@ -181,13 +303,20 @@ method(`+`, list(big_num, big_num)) <- function(e1, e2) {
 
   sum
 }
+#' @rdname big_num-addition
 method(`+`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 + big_num(e2)
 }
+#' @rdname big_num-addition
 method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) + e2
 }
 
+#' Remove leading zeros in place
+#'
+#' @param bn A `big_num` to normalize.
+#' @returns `bn`, modified in place.
+#' @noRd
 .remove_leading_zeros <- function(bn) {
   if (is.null(bn@head)) {
     append(bn, node(0))
@@ -226,6 +355,18 @@ method(`+`, list(class_numeric, big_num)) <- function(e1, e2) {
   bn
 }
 
+#' Multiply big numbers
+#'
+#' [base::Arithmetic] `*` methods support two `big_num` objects or one
+#' `big_num` and one numeric operand, in either order.
+#'
+#' @param e1,e2 Two `big_num` objects, or a `big_num` and a numeric value.
+#' @returns A new `big_num` containing the product.
+#' @rdname big_num-multiplication
+#' @examples
+#' big_num("148") * big_num("997")
+#' big_num("12") * 3
+#' 3 * big_num("12")
 method(`*`, list(big_num, big_num)) <- function(e1, e2) {
   product <- big_num("0")
   node2 <- e2@head
@@ -240,7 +381,7 @@ method(`*`, list(big_num, big_num)) <- function(e1, e2) {
       temp <- big_num(as.character(digit_product))
 
       for (i in seq_len(shift1 + shift2)) {
-        append_to_start(temp, node(0))
+        prepend(temp, node(0))
       }
 
       product <- product + temp
@@ -255,13 +396,26 @@ method(`*`, list(big_num, big_num)) <- function(e1, e2) {
 
   .remove_leading_zeros(product)
 }
+#' @rdname big_num-multiplication
 method(`*`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 * big_num(e2)
 }
+#' @rdname big_num-multiplication
 method(`*`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(e1) * e2
 }
 
+#' Raise a big number to a power
+#'
+#' The [base::Arithmetic] `^` method uses exponentiation by squaring.
+#'
+#' @param e1 A `big_num` base.
+#' @param e2 A non-negative integer-valued numeric exponent.
+#' @returns A new `big_num`.
+#' @rdname big_num-exponentiation
+#' @examples
+#' big_num("11") ^ 5
+#' big_num("2") ^ 0
 method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
   if (e2 < 0 || is.na(e2) || !is.finite(e2)) {
     stop("Exponent must be a non-negative integer")
@@ -286,6 +440,20 @@ method(`^`, list(big_num, class_numeric)) <- function(e1, e2) {
   result
 }
 
+#' Compare linked lists and big numbers
+#'
+#' [base::Comparison] `==` methods compare linked lists node by node.
+#' For `big_num`, leading zeros are removed in place before comparing via
+#' [S7::super()]. Numeric operands are also supported.
+#'
+#' @param e1,e2 Two `linked_list` objects, two `big_num` objects, or a
+#'   `big_num` and a numeric value.
+#' @returns A single logical value.
+#' @rdname big_num-equality
+#' @examples
+#' big_num("00123") == big_num("123")
+#' big_num("123") == 123
+#' big_num("123") == big_num("124")
 method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   len <- e1@length
   if (len != e2@length) {
@@ -302,13 +470,16 @@ method(`==`, list(linked_list, linked_list)) <- function(e1, e2) {
   }
   TRUE
 }
+#' @rdname big_num-equality
 method(`==`, list(big_num, big_num)) <- function(e1, e2) {
   super(.remove_leading_zeros(e1), linked_list) ==
     super(.remove_leading_zeros(e2), linked_list)
 }
+#' @rdname big_num-equality
 method(`==`, list(big_num, class_numeric)) <- function(e1, e2) {
   e1 == big_num(as.character(e2))
 }
+#' @rdname big_num-equality
 method(`==`, list(class_numeric, big_num)) <- function(e1, e2) {
   big_num(as.character(e1)) == e2
 }
